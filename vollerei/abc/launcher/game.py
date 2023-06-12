@@ -90,4 +90,3 @@ class GameABC(ABC):
         Get the game channel
         """
         pass
-    

@@ -51,7 +51,6 @@ class Patcher(PatcherABC):
             raise VersionNotSupportedError(
                 "Only version 1.0.5 is supported by Astra patch."
             )
-        
 
     def _patch_jadeite(self, game: Game):
         pass
