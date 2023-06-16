@@ -24,7 +24,10 @@ class Git:
     @staticmethod
     def is_installed():
         """
-        Check for git installation, if not found raise GitNotInstalled
+        Check for git installation
+
+        Returns:
+            bool: True if git is installed, False otherwise
         """
         if not which("git"):
             return False
@@ -67,14 +70,18 @@ class Git:
             zip_file = ZipFile(file)
             zip_file.extractall(path)
             with Path(path).joinpath(".git/PLEASE_INSTALL_GIT").open("w") as f:
-                f.write(json.dumps({"type": "gitea", "netloc": netloc, "path": url_info.path}))
+                f.write(
+                    json.dumps(
+                        {"type": "gitea", "netloc": netloc, "path": url_info.path}
+                    )
+                )
         else:
             raise NotImplementedError
 
     def pull_or_clone(self, url: str, path: str = None) -> None:
         """
         Pulls or clones a git repository
-        
+
         If the repository already exists and the url matches, it'll be pulled.
         """
         if not self.is_installed():
