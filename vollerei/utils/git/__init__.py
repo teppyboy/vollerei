@@ -46,6 +46,32 @@ class Git:
             return False
         return True
 
+    def _gitea_get_latest_commit(self, netloc: str, path: str) -> str:
+        """
+        Get latest commit from a Gitea repository
+        """
+        # Params to speed up request
+        rsp = requests.get(
+            f"https://{netloc}/api/v1/repos/{path}/commits",
+            params={"limit": 1, "stat": False, "verification": False, "files": False},
+        )
+        try:
+            data: list = rsp.json()
+        except json.JSONDecodeError:
+            return None
+        return data[0]["sha"]
+
+    def _download_and_extract_zip(self, url: str, path: Path) -> None:
+        rsp = requests.get(url, stream=True)
+        rsp.raise_for_status()
+        file = BytesIO()
+        with open(file, "wb") as f:
+            for chunk in rsp.iter_content(chunk_size=32768):
+                f.write(chunk)
+        zip_file = ZipFile(file)
+        zip_file.extractall(path)
+        path.joinpath(".git/PLEASE_INSTALL_GIT").touch()
+
     def _clone(self, url: str, path: str = None) -> None:
         """
         "Clone" a git repository without git
@@ -56,25 +82,20 @@ class Git:
         netloc = url_info.netloc
         if path is None:
             path = Path.cwd().joinpath(Path(url).stem)
+        path: Path = Path(path)
         if self._is_gitea(netloc):
-            # Hardcoding the branch to master, because well :D
-            file = BytesIO()
-            rsp = requests.get(
-                f"https://{netloc}/api/v1/repos/{url_info.path}/archive/master.zip",
-                stream=True,
+            commit = self._gitea_get_latest_commit(netloc, url_info.path)
+            self._download_and_extract_zip(
+                f"https://{netloc}/api/v1/repos/{url_info.path}/archive/{commit}.zip",
+                path,
             )
-            rsp.raise_for_status()
-            with open(file, "wb") as f:
-                for chunk in rsp.iter_content(chunk_size=32768):
-                    f.write(chunk)
-            zip_file = ZipFile(file)
-            zip_file.extractall(path)
-            with Path(path).joinpath(".git/PLEASE_INSTALL_GIT").open("w") as f:
-                f.write(
-                    json.dumps(
-                        {"type": "gitea", "netloc": netloc, "path": url_info.path}
-                    )
-                )
+        elif netloc == "notabug.org":
+            # NotABug workaround
+            # Still guessing the branch is master here...
+            branch = "master"
+            self._download_and_extract_zip(
+                f"https://notabug.org/{url_info.path}/archive/{branch}.zip", path
+            )
         else:
             raise NotImplementedError
 
