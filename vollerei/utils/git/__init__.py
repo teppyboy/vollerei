@@ -2,12 +2,11 @@ import subprocess
 import requests
 import json
 from pathlib import Path
-from zipfile import ZipFile
-from io import BytesIO
 from shutil import which, rmtree
 from urllib.parse import urlparse
 from vollerei.constants import utils_cache_path
 from vollerei.utils.git.exceptions import GitCloneError
+from vollerei.utils import download_and_extract
 
 
 class Git:
@@ -62,14 +61,7 @@ class Git:
         return data[0]["sha"]
 
     def _download_and_extract_zip(self, url: str, path: Path) -> None:
-        rsp = requests.get(url, stream=True)
-        rsp.raise_for_status()
-        file = BytesIO()
-        with open(file, "wb") as f:
-            for chunk in rsp.iter_content(chunk_size=32768):
-                f.write(chunk)
-        zip_file = ZipFile(file)
-        zip_file.extractall(path)
+        download_and_extract(url, path)
         path.joinpath(".git/PLEASE_INSTALL_GIT").touch()
 
     def _clone(self, url: str, path: str = None) -> None:
@@ -96,6 +88,23 @@ class Git:
             self._download_and_extract_zip(
                 f"https://notabug.org/{url_info.path}/archive/{branch}.zip", path
             )
+        else:
+            raise NotImplementedError
+
+    def get_latest_release_dl(self, url: str) -> list[str]:
+        dl = []
+        if Path(url).suffix == ".git":
+            url = url[:-4]
+        url_info = urlparse(url)
+        netloc = url_info.netloc
+        if self._is_gitea(netloc):
+            rsp = requests.get(
+                f"https://{netloc}/api/v1/repos/{url_info.path}/releases/latest",
+            )
+            rsp.raise_for_status()
+            data = rsp.json()
+            for asset in data["assets"]:
+                dl.append(asset["browser_download_url"])
         else:
             raise NotImplementedError
 
