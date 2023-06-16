@@ -10,14 +10,12 @@ class GameABC(ABC):
     def __init__(self, path: PathLike = None):
         pass
 
-    @abstractmethod
     def is_installed(self) -> bool:
         """
         Check if the game is installed
         """
         pass
 
-    @abstractmethod
     def install_game(self, game_path: PathLike = None):
         """
         Install the game
@@ -33,7 +31,6 @@ class GameABC(ABC):
         """
         pass
 
-    @abstractmethod
     def install_game_from_archive(
         self, archive: PathLike, game_path: PathLike = None
     ) -> None:
@@ -48,7 +45,6 @@ class GameABC(ABC):
             game_path (PathLike, optional): Path to install the game to.
         """
 
-    @abstractmethod
     def install_update_from_archive(
         self, archive: PathLike, game_path: PathLike = None
     ) -> None:
@@ -61,7 +57,6 @@ class GameABC(ABC):
         """
         pass
 
-    @abstractmethod
     def get_version(self) -> tuple[int, int, int]:
         """
         Get the game version
@@ -70,21 +65,18 @@ class GameABC(ABC):
         """
         pass
 
-    @abstractmethod
     def get_update(self):
         """
         Get the game update
         """
         pass
 
-    @abstractmethod
     def get_voiceover_update(self, language: str):
         """
         Get the voiceover update
         """
         pass
 
-    @abstractmethod
     def get_channel(self):
         """
         Get the game channel
