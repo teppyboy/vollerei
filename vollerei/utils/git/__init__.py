@@ -22,7 +22,7 @@ class Git:
         self._cache.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def is_installed():
+    def is_installed() -> bool:
         """
         Check for git installation
 
