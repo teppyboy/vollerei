@@ -51,4 +51,6 @@ class HSR:
             "Patching succeeded, but note that you need to run the game using Jadeite to use the patch."
         )
         print(f'E.g: I_WANT_A_BAN=1 {exe_path} "{self._game.path}"')
-        print("And for your own sake, please only use testing accounts, as there is an extremely high risk of getting banned.")
+        print(
+            "And for your own sake, please only use testing accounts, as there is an extremely high risk of getting banned."
+        )
