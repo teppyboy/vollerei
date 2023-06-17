@@ -37,9 +37,21 @@ class Game(GameABC):
 
         Credits to An Anime Team for the code that does the magic:
         https://github.com/an-anime-team/anime-game-core/blob/main/src/games/star_rail/game.rs#L49
+
+        This returns (0, 0, 0) if the version could not be found
+        (usually indicates the game is not installed)
+
+        Returns:
+            tuple[int, int, int]: The version as a tuple of integers.
         """
+
+        def bytes_to_int(byte_array: list[bytes]) -> int:
+            bytes_as_int = int.from_bytes(byte_array, byteorder="big")
+            actual_int = bytes_as_int - 48  # 48 is the ASCII code for 0
+            return actual_int
+
         allowed = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57]
-        version_bytes: list[bytes] = [0, 0, 0]
+        version_bytes: list[list[bytes]] = [[], [], []]
         version_ptr = 0
         correct = True
         with self.data_folder().joinpath("data.unity3d").open("rb") as f:
@@ -47,7 +59,7 @@ class Game(GameABC):
             for byte in f.read(10000):
                 match byte:
                     case 0:
-                        version_bytes = [0, 0, 0]
+                        version_bytes = [[], [], []]
                         version_ptr = 0
                         correct = True
                     case 46:
@@ -57,19 +69,18 @@ class Game(GameABC):
                     case 38:
                         if (
                             correct
-                            and version_bytes[0] > 0
-                            and version_bytes[1] > 0
-                            and version_bytes[2] > 0
+                            and len(version_bytes[0]) > 0
+                            and len(version_bytes[1]) > 0
+                            and len(version_bytes[2]) > 0
                         ):
-                            # TODO: The below code is not correct.
                             return (
-                                int(version_bytes[0]),
-                                int(version_bytes[1]),
-                                int(version_bytes[2]),
+                                bytes_to_int(version_bytes[0]),
+                                bytes_to_int(version_bytes[1]),
+                                bytes_to_int(version_bytes[2]),
                             )
                     case _:
                         if correct and byte in allowed:
-                            version_bytes[version_ptr] += byte
+                            version_bytes[version_ptr].append(byte)
                         else:
                             correct = False
         return (0, 0, 0)
