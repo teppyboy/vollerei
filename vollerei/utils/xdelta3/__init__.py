@@ -4,7 +4,7 @@ import requests
 from os import PathLike
 from zipfile import ZipFile
 from shutil import which
-from vollerei.constants import tools_cache_path
+from vollerei.paths import tools_cache_path
 from vollerei.utils.xdelta3.exceptions import (
     Xdelta3NotInstalledError,
     Xdelta3PatchError,

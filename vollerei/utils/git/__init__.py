@@ -1,12 +1,13 @@
+from io import BytesIO
 import subprocess
+from zipfile import ZipFile
 import requests
 import json
 from pathlib import Path
 from shutil import which, rmtree
 from urllib.parse import urlparse
-from vollerei.constants import utils_cache_path
+from vollerei.paths import utils_cache_path
 from vollerei.utils.git.exceptions import GitCloneError
-from vollerei.utils import download_and_extract
 
 
 class Git:
@@ -36,7 +37,7 @@ class Git:
         """
         Check if the url is a Gitea server
         """
-        rsp = requests.get(f"https://{netloc}/api/v1/meta")
+        rsp = requests.get(f"https://{netloc}/api/v1/version")
         try:
             data: dict = rsp.json()
         except json.JSONDecodeError:
@@ -61,7 +62,15 @@ class Git:
         return data[0]["sha"]
 
     def _download_and_extract_zip(self, url: str, path: Path) -> None:
-        download_and_extract(url, path)
+        # Copied code so it doesn't depend on vollerei.utils.download_and_extract
+        rsp = requests.get(url, stream=True)
+        rsp.raise_for_status()
+        with BytesIO() as f:
+            for chunk in rsp.iter_content(chunk_size=32768):
+                f.write(chunk)
+            f.seek(0)
+            with ZipFile(f) as z:
+                z.extractall(path)
         path.joinpath(".git/PLEASE_INSTALL_GIT").touch()
 
     def _clone(self, url: str, path: str = None) -> None:
@@ -91,8 +100,7 @@ class Git:
         else:
             raise NotImplementedError
 
-    def get_latest_release_dl(self, url: str) -> list[str]:
-        dl = []
+    def get_latest_release(self, url: str) -> dict:
         if Path(url).suffix == ".git":
             url = url[:-4]
         url_info = urlparse(url)
@@ -103,10 +111,17 @@ class Git:
             )
             rsp.raise_for_status()
             data = rsp.json()
-            for asset in data["assets"]:
-                dl.append(asset["browser_download_url"])
+            return data
         else:
             raise NotImplementedError
+
+    def get_latest_release_dl(self, data: dict) -> list[str]:
+        dl = []
+        if not data.get("assets"):
+            return dl
+        for asset in data["assets"]:
+            dl.append(asset["browser_download_url"])
+        return dl
 
     def pull_or_clone(self, url: str, path: str = None) -> None:
         """
