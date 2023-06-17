@@ -56,6 +56,10 @@ class Game(GameABC):
             tuple[int, int, int]: The version as a tuple of integers.
         """
 
+        data_file = self.data_folder().joinpath("data.unity3d")
+        if not data_file.exists():
+            return (0, 0, 0)
+
         def bytes_to_int(byte_array: list[bytes]) -> int:
             bytes_as_int = int.from_bytes(byte_array, byteorder="big")
             actual_int = bytes_as_int - 48  # 48 is the ASCII code for 0
