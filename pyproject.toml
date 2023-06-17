@@ -15,6 +15,10 @@ requests = "^2.31.0"
 pytest = "^7.3.1"
 pre-commit = "^3.3.3"
 
+
+[tool.poetry.group.cli.dependencies]
+fire = "^0.5.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
