@@ -45,7 +45,10 @@ class HSR:
             print(f"Patching failed with following error: {e}")
             return
         print("OK")
-        print("Jadelte executable is located at:", jadelte_dir.joinpath("jadelte.exe"))
+        exe_path = jadelte_dir.joinpath("jadeite.exe")
+        print("Jadelte executable is located at:", exe_path)
         print(
-            "Patching succeeded, but note that you need to run the game using Jadelte to use the patch."
+            "Patching succeeded, but note that you need to run the game using Jadeite to use the patch."
         )
+        print(f'E.g: I_WANT_A_BAN=1 {exe_path} "{self._game.path}"')
+        print("And for your own sake, please only use testing accounts, as there is an extremely high risk of getting banned.")
