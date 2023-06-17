@@ -85,6 +85,9 @@ class Game(GameABC):
                             correct = False
         return (0, 0, 0)
 
+    def get_version_str(self) -> str:
+        return ".".join(str(i) for i in self.get_version())
+
     def get_channel(self) -> GameChannel:
         if self.get_version() == (1, 0, 5):
             for channel, v in md5sums["1.0.5"].values():
