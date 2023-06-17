@@ -19,17 +19,28 @@ class Game(GameABC):
     def path(self) -> Path | None:
         return self._path
 
+    @path.setter
+    def path(self, path: PathLike):
+        self._path = Path(path)
+
     def data_folder(self) -> Path:
         return self._path.joinpath("StarRail_Data")
 
     def is_installed(self) -> bool:
+        """
+        Check if the game is installed.
+        """
         if self._path is None:
             return False
         if (
             not self._path.joinpath("StarRail.exe").exists()
             or not self._path.joinpath("StarRailBase.dll").exists()
+            or not self._path.joinpath("StarRail_Data").exists()
         ):
             return False
+        if self.get_version() == (0, 0, 0):
+            return False
+        return True
 
     def get_version(self) -> tuple[int, int, int]:
         """
@@ -86,9 +97,23 @@ class Game(GameABC):
         return (0, 0, 0)
 
     def get_version_str(self) -> str:
+        """
+        Same as get_version, but returns a string instead.
+
+        Returns:
+            str: The version as a string.
+        """
         return ".".join(str(i) for i in self.get_version())
 
     def get_channel(self) -> GameChannel:
+        """
+        Get the current game channel.
+
+        Only works for Star Rail version 1.0.5, other versions will return None
+
+        Returns:
+            GameChannel: The current game channel.
+        """
         if self.get_version() == (1, 0, 5):
             for channel, v in md5sums["1.0.5"].values():
                 for file, md5sum in v.values():

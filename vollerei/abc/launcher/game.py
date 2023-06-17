@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from os import PathLike
+from pathlib import Path
 
 
 class GameABC(ABC):
@@ -8,6 +9,12 @@ class GameABC(ABC):
     """
 
     def __init__(self, path: PathLike = None):
+        pass
+
+    def data_folder(self) -> Path:
+        """
+        Get the game data folder
+        """
         pass
 
     def is_installed(self) -> bool:
