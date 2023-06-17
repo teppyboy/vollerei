@@ -1,4 +1,6 @@
 from traceback import print_exc
+from platform import system
+from vollerei.cli.utils import ask
 from vollerei.hsr import Game, Patcher
 from vollerei.exceptions.patcher import PatcherError, PatchUpdateError
 from vollerei.hsr.patcher import PatchType
@@ -26,7 +28,6 @@ class HSR:
         except PatchUpdateError as e:
             print("FAILED")
             print(f"Patch update failed with following error: {e} ({e.__context__})")
-            print_exc()
             return False
         print("OK")
         return True
@@ -34,11 +35,9 @@ class HSR:
     def update_patch(self):
         self.__update_patch()
 
-    def patch(self):
-        if not self.__update_patch():
-            return
+    def __patch_jadeite(self):
         try:
-            print("Patching game...", end=" ")
+            print("Installing patch...", end=" ")
             jadelte_dir = self._patcher.patch_game(game=self._game)
         except PatcherError as e:
             print("FAILED")
@@ -48,9 +47,37 @@ class HSR:
         exe_path = jadelte_dir.joinpath("jadeite.exe")
         print("Jadelte executable is located at:", exe_path)
         print(
-            "Patching succeeded, but note that you need to run the game using Jadeite to use the patch."
+            "Installation succeeded, but note that you need to run the game using "
+            + "Jadeite to use the patch."
         )
         print(f'E.g: I_WANT_A_BAN=1 {exe_path} "{self._game.path}"')
         print(
-            "And for your own sake, please only use testing accounts, as there is an extremely high risk of getting banned."
+            "And for your own sake, please only use testing accounts, as there is an "
+            + "extremely high risk of getting banned."
         )
+
+    def __patch_astra(self):
+        try:
+            print("Patching game...", end=" ")
+            self._patcher.patch_game(game=self._game)
+        except PatcherError as e:
+            print("FAILED")
+            print(f"Patching failed with following error: {e}")
+            return
+        print("OK")
+
+    def patch(self):
+        if system() == "Windows":
+            print(
+                "Windows is supported officialy by the game, so no patching is needed."
+            )
+            if not ask("Do you still want to patch?"):
+                print("Patching aborted.")
+                return
+        if not self.__update_patch():
+            return
+        match self._patcher.patch_type:
+            case PatchType.Jadeite:
+                self.__patch_jadeite()
+            case PatchType.Astra:
+                self.__patch_astra()

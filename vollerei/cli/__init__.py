@@ -2,14 +2,20 @@ from pathlib import Path
 from vollerei import __version__
 from vollerei.cli.hsr import HSR
 from vollerei.hsr import PatchType
+from vollerei.cli import utils
 
 
 class CLI:
-    def __init__(self, game_path: str = None, patch_type=None) -> None:
+    def __init__(
+        self, game_path: str = None, patch_type=None, noconfirm: bool = False
+    ) -> None:
         """
         Vollerei CLI
         """
         print(f"Vollerei v{__version__}")
+        if noconfirm:
+            print("User requested to automatically answer yes to all questions.")
+            utils.no_confirm = noconfirm
         if not game_path:
             game_path = Path.cwd()
         game_path = Path(game_path)
