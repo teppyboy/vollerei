@@ -3,7 +3,11 @@ from shutil import copy2
 from distutils.version import StrictVersion
 from vollerei.abc.patcher import PatcherABC
 from vollerei.exceptions.game import GameNotInstalledError
-from vollerei.exceptions.patcher import VersionNotSupportedError
+from vollerei.exceptions.patcher import (
+    VersionNotSupportedError,
+    PatcherError,
+    PatchUpdateError,
+)
 from vollerei.hsr.launcher.game import Game, GameChannel
 from vollerei.utils import download_and_extract, Git, Xdelta3
 from vollerei.paths import tools_data_path
@@ -63,11 +67,14 @@ class Patcher(PatcherABC):
             f.write(file_version)
 
     def update_patch(self):
-        match self._patch_type:
-            case PatchType.Astra:
-                self._update_astra()
-            case PatchType.Jadeite:
-                self._update_jadeite()
+        try:
+            match self._patch_type:
+                case PatchType.Astra:
+                    self._update_astra()
+                case PatchType.Jadeite:
+                    self._update_jadeite()
+        except Exception as e:
+            raise PatchUpdateError("Failed to update patch.") from e
 
     def _patch_astra(self, game: Game):
         if game.get_version() != (1, 0, 5):
@@ -119,7 +126,7 @@ class Patcher(PatcherABC):
 
     def patch_game(self, game: Game):
         if not game.is_installed():
-            raise GameNotInstalledError("Game is not installed")
+            raise PatcherError(GameNotInstalledError("Game is not installed"))
         match self._patch_type:
             case PatchType.Astra:
                 self._patch_astra(game)
@@ -127,4 +134,10 @@ class Patcher(PatcherABC):
                 return self._patch_jadeite()
 
     def unpatch_game(self, game: Game):
+        pass
+
+    def check_telemetry(self):
+        pass
+
+    def block_telemetry(self):
         pass
