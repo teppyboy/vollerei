@@ -1,5 +1,8 @@
+import errno
 from io import BytesIO
+import os
 import subprocess
+import stat
 from zipfile import ZipFile
 import requests
 import json
@@ -145,16 +148,39 @@ class Git:
             rmtree(path)
         try:
             if not path_as_path.exists():
-                raise subprocess.CalledProcessError
-            origin_url = subprocess.check_output(
-                ["git", "config", "--get", "remote.origin.url"], cwd=path
-            ).decode()
+                raise subprocess.CalledProcessError(0, cmd="Vollerei-generated error")
+            origin_url = (
+                subprocess.check_output(
+                    ["git", "config", "--get", "remote.origin.url"], cwd=path
+                )
+                .decode()
+                .strip()
+            )
             if origin_url != url:
-                raise subprocess.CalledProcessError
+                raise subprocess.CalledProcessError(0, cmd="Vollerei-generated error")
             subprocess.check_call(["git", "pull"], cwd=path)
         except subprocess.CalledProcessError:
             if path_as_path.exists():
-                rmtree(path)
+                try:
+
+                    def handle_error(func, path, exc):
+                        excvalue = exc[1]
+                        if (
+                            func in (os.rmdir, os.remove)
+                            and excvalue.errno == errno.EACCES
+                        ):
+                            os.chmod(
+                                path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+                            )  # 0777
+                            func(path)
+                        else:
+                            raise
+
+                    rmtree(path, ignore_errors=False, onerror=handle_error)
+                except OSError as e:
+                    raise GitCloneError(
+                        f"Failed to delete existing repository {path_as_path}"
+                    ) from e
             try:
                 subprocess.check_call(["git", "clone", url, path])
             except subprocess.CalledProcessError as e:
