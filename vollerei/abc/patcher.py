@@ -34,3 +34,11 @@ class PatcherABC(ABC):
         unpatching fails then it'll raise `UnpatchingFailedError`.
         """
         pass
+
+    @abstractmethod
+    def check_telemetry(self):
+        pass
+
+    @abstractmethod
+    def block_telemetry(self):
+        pass
