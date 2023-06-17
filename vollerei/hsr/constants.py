@@ -11,3 +11,6 @@ md5sums = {
         },
     }
 }
+# Patches
+astra_repo = "https://notabug.org/mkrsym1/astra"
+jadeite_repo = "https://codeberg.org/mkrsym1/jadeite/"

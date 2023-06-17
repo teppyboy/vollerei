@@ -1,4 +1,3 @@
-from pathlib import Path
 from enum import Enum
 from shutil import copy2
 from distutils.version import StrictVersion
@@ -8,7 +7,7 @@ from vollerei.exceptions.patcher import VersionNotSupportedError
 from vollerei.hsr.launcher.game import Game, GameChannel
 from vollerei.utils import download_and_extract, Git, Xdelta3
 from vollerei.paths import tools_data_path
-from vollerei.constants import astra_repo, jadeite_repo
+from vollerei.hsr.constants import astra_repo, jadeite_repo
 
 
 class PatchType(Enum):
@@ -24,6 +23,10 @@ class PatchType(Enum):
 
 
 class Patcher(PatcherABC):
+    """
+    Patch helper for HSR.
+    """
+
     def __init__(self, patch_type: PatchType = PatchType.Jadeite):
         self._patch_type: PatchType = patch_type
         self._path = tools_data_path.joinpath("patcher")
@@ -45,8 +48,9 @@ class Patcher(PatcherABC):
         self._git.pull_or_clone(astra_repo, self._astra)
 
     def _update_jadeite(self):
-        file = self._git.get_latest_release_dl(jadeite_repo)[0]
-        file_version = Path(file).stem[1:]
+        release_info = self._git.get_latest_release(jadeite_repo)
+        file = self._git.get_latest_release_dl(release_info)[0]
+        file_version = release_info["tag_name"][1:]  # Remove "v" prefix
         current_version = None
         if self._jadeite.joinpath("version").exists():
             with open(self._jadeite.joinpath("version"), "r") as f:
@@ -121,3 +125,6 @@ class Patcher(PatcherABC):
                 self._patch_astra(game)
             case PatchType.Jadeite:
                 return self._patch_jadeite()
+
+    def unpatch_game(self, game: Game):
+        pass

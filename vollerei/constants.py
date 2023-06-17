@@ -8,7 +8,3 @@ telemetry_hosts = [
     "log-upload.mihoyo.com",
     "public-data-api.mihoyo.com",
 ]
-
-# HSR
-astra_repo = "https://notabug.org/mkrsym1/astra"
-jadeite_repo = "https://codeberg.org/mkrsym1/jadeite/"
