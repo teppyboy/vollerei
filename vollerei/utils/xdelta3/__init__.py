@@ -2,6 +2,7 @@ import platform
 import subprocess
 import requests
 from os import PathLike
+from io import BytesIO
 from zipfile import ZipFile
 from shutil import which
 from vollerei.paths import tools_cache_path
@@ -60,14 +61,13 @@ class Xdelta3:
                 url = "https://github.com/jmacd/xdelta-gpl/releases/download/v3.1.0/xdelta3-3.1.0-i686.exe.zip"
             case "i686":
                 url = "https://github.com/jmacd/xdelta-gpl/releases/download/v3.1.0/xdelta3-3.1.0-i686.exe.zip"
-        file = self._xdelta3_path.joinpath("xdelta3.zip")
+        file = BytesIO()
         with requests.get(url, stream=True) as r:
             with open(file, "wb") as f:
                 for chunk in r.iter_content(chunk_size=32768):
                     f.write(chunk)
         with ZipFile(file) as z:
             z.extractall(self._xdelta3_path)
-        file.unlink()
 
     def patch_file(self, patch: PathLike, target: PathLike, output: PathLike):
         """
