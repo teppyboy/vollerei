@@ -38,14 +38,14 @@ class HSR:
     def __patch_jadeite(self):
         try:
             print("Installing patch...", end=" ")
-            jadelte_dir = self._patcher.patch_game(game=self._game)
+            jadeite_dir = self._patcher.patch_game(game=self._game)
         except PatcherError as e:
             print("FAILED")
             print(f"Patching failed with following error: {e}")
             return
         print("OK")
-        exe_path = jadelte_dir.joinpath("jadeite.exe")
-        print("Jadelte executable is located at:", exe_path)
+        exe_path = jadeite_dir.joinpath("jadeite.exe")
+        print("jadeite executable is located at:", exe_path)
         print(
             "Installation succeeded, but note that you need to run the game using "
             + "Jadeite to use the patch."
