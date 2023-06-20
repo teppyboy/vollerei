@@ -45,18 +45,24 @@ class HSR:
             return
         print("OK")
         exe_path = jadeite_dir.joinpath("jadeite.exe")
-        print()
         print("Jadeite executable is located at:", exe_path)
         print()
+        print("=" * 15)
         print(
             "Installation succeeded, but note that you need to run the game using "
             + "Jadeite to use the patch."
         )
+        print()
         print(f'E.g: I_WANT_A_BAN=1 {exe_path} "{self._game.path}"')
+        print()
+        print(
+            "Please don't spread this project to public, we just want to play the game."
+        )
         print(
             "And for your own sake, please only use testing accounts, as there is an "
             + "extremely high risk of getting banned."
         )
+        print("=" * 15)
 
     def __patch_astra(self):
         try:
