@@ -1,5 +1,5 @@
-latest_version = (1, 1, 0)
-md5sums = {
+LATEST_VERSION = (1, 1, 0)
+MD5SUMS = {
     "1.0.5": {
         "cn": {
             "StarRailBase.dll": "66c42871ce82456967d004ccb2d7cf77",
@@ -12,5 +12,5 @@ md5sums = {
     }
 }
 # Patches
-astra_repo = "https://notabug.org/mkrsym1/astra"
-jadeite_repo = "https://codeberg.org/mkrsym1/jadeite/"
+ASTRA_REPO = "https://notabug.org/mkrsym1/astra"
+JADEITE_REPO = "https://codeberg.org/mkrsym1/jadeite/"

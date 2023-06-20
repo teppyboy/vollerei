@@ -11,7 +11,7 @@ from vollerei.exceptions.patcher import (
 from vollerei.hsr.launcher.game import Game, GameChannel
 from vollerei.utils import download_and_extract, Git, Xdelta3
 from vollerei.paths import tools_data_path
-from vollerei.hsr.constants import astra_repo, jadeite_repo
+from vollerei.hsr.constants import ASTRA_REPO, JADEITE_REPO
 
 
 class PatchType(Enum):
@@ -49,10 +49,10 @@ class Patcher(PatcherABC):
         self._patch_type = value
 
     def _update_astra(self):
-        self._git.pull_or_clone(astra_repo, self._astra)
+        self._git.pull_or_clone(ASTRA_REPO, self._astra)
 
     def _update_jadeite(self):
-        release_info = self._git.get_latest_release(jadeite_repo)
+        release_info = self._git.get_latest_release(JADEITE_REPO)
         file = self._git.get_latest_release_dl(release_info)[0]
         file_version = release_info["tag_name"][1:]  # Remove "v" prefix
         current_version = None
