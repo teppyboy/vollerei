@@ -60,12 +60,14 @@ class Xdelta3:
                 url = "https://github.com/jmacd/xdelta-gpl/releases/download/v3.1.0/xdelta3-3.1.0-i686.exe.zip"
             case "i686":
                 url = "https://github.com/jmacd/xdelta-gpl/releases/download/v3.1.0/xdelta3-3.1.0-i686.exe.zip"
+        file = self._xdelta3_path.joinpath("xdelta3.zip")
         with requests.get(url, stream=True) as r:
-            with open(self._xdelta3_path.joinpath("xdelta3.zip"), "wb") as f:
+            with open(file, "wb") as f:
                 for chunk in r.iter_content(chunk_size=32768):
                     f.write(chunk)
-        with ZipFile(self._xdelta3_path.joinpath("xdelta3.zip")) as z:
+        with ZipFile(file) as z:
             z.extractall(self._xdelta3_path)
+        file.unlink()
 
     def patch_file(self, patch: PathLike, target: PathLike, output: PathLike):
         """
