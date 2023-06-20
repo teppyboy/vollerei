@@ -45,7 +45,9 @@ class HSR:
             return
         print("OK")
         exe_path = jadeite_dir.joinpath("jadeite.exe")
-        print("jadeite executable is located at:", exe_path)
+        print()
+        print("Jadeite executable is located at:", exe_path)
+        print()
         print(
             "Installation succeeded, but note that you need to run the game using "
             + "Jadeite to use the patch."
@@ -74,6 +76,24 @@ class HSR:
             if not ask("Do you still want to patch?"):
                 print("Patching aborted.")
                 return
+        telemetry_list = self._patcher.check_telemetry()
+        if telemetry_list:
+            print("Telemetry hosts found: ")
+            for host in telemetry_list:
+                print(f" - {host}")
+            if not ask(
+                "Do you want to block these hosts? (Without blocking you can't use the patch)"
+            ):
+                print("Patching aborted.")
+                return
+            try:
+                self._patcher.block_telemetry(telemetry_list=telemetry_list)
+            except Exception as e:
+                print("Couldn't block telemetry hosts:", e)
+                if system() != "Windows":
+                    print("Cannot continue, please block them manually then try again.")
+                    return
+                print("Continuing anyway...")
         if not self.__update_patch():
             return
         match self._patcher.patch_type:

@@ -35,7 +35,7 @@ class HDiffPatch:
         # (or use Wine if they prefer that)
         raise RuntimeError("Only Windows, Linux and macOS are supported by HDiffPatch")
 
-    def _get_hdiffpatch_exec(self, exec_name) -> str | None:
+    def _get_exec(self, exec_name) -> str | None:
         if which(exec_name):
             return exec_name
         if not self.data_path.exists():
@@ -48,12 +48,12 @@ class HDiffPatch:
             file.chmod(0o755)
             return str(file)
 
-    def _hpatchz(self):
+    def hpatchz(self) -> str | None:
         hpatchz_name = "hpatchz" + (".exe" if platform.system() == "Windows" else "")
-        return self._get_hdiffpatch_exec(hpatchz_name)
+        return self._get_exec(hpatchz_name)
 
     def patch_file(self, in_file, out_file, patch_file):
-        hpatchz = self.get_hpatchz_executable()
+        hpatchz = self.hpatchz()
         if not hpatchz:
             raise RuntimeError("hpatchz executable not found")
         subprocess.check_call([hpatchz, "-f", in_file, patch_file, out_file])

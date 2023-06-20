@@ -1,7 +1,8 @@
 from enum import Enum
-from shutil import copy2
+from shutil import copy2, rmtree
 from distutils.version import StrictVersion
 from vollerei.abc.patcher import PatcherABC
+from vollerei.common import telemetry
 from vollerei.exceptions.game import GameNotInstalledError
 from vollerei.exceptions.patcher import (
     VersionNotSupportedError,
@@ -88,11 +89,9 @@ class Patcher(PatcherABC):
                 file_type = "cn"
             case GameChannel.Overseas:
                 file_type = "os"
-        # Backup
+        # Backup and patch
         for file in ["UnityPlayer.dll", "StarRailBase.dll"]:
             game.path.joinpath(file).rename(game.path.joinpath(f"{file}.bak"))
-        # Patch
-        for file in ["UnityPlayer.dll", "StarRailBase.dll"]:
             self._xdelta3.patch_file(
                 self._astra.joinpath(f"{file_type}/diffs/{file}.vcdiff"),
                 game.path.joinpath(f"{file}.bak"),
@@ -124,6 +123,40 @@ class Patcher(PatcherABC):
         self._update_jadeite()
         return self._jadeite
 
+    def _unpatch_astra(self, game: Game):
+        if game.get_version() != (1, 0, 5):
+            raise VersionNotSupportedError(
+                "Only version 1.0.5 is supported by Astra patch."
+            )
+        self._update_astra()
+        file_type = None
+        match game.get_channel():
+            case GameChannel.China:
+                file_type = "cn"
+            case GameChannel.Overseas:
+                file_type = "os"
+        # Restore
+        for file in ["UnityPlayer.dll", "StarRailBase.dll"]:
+            if game.path.joinpath(f"{file}.bak").exists():
+                game.path.joinpath(file).unlink()
+                game.path.joinpath(f"{file}.bak").rename(game.path.joinpath(file))
+        # Remove files
+        for file in self._astra.joinpath(f"{file_type}/files/").rglob("*"):
+            if file.suffix == ".bat":
+                continue
+            file_rel = file.relative_to(self._astra.joinpath(f"{file_type}/files/"))
+            game_path = game.path.joinpath(file_rel)
+            if game_path.is_file():
+                game_path.unlink()
+            elif game_path.is_dir():
+                try:
+                    game_path.rmdir()
+                except OSError:
+                    pass
+
+    def _unpatch_jadeite(self):
+        rmtree(self._jadeite, ignore_errors=True)
+
     def patch_game(self, game: Game):
         if not game.is_installed():
             raise PatcherError(GameNotInstalledError("Game is not installed"))
@@ -134,10 +167,18 @@ class Patcher(PatcherABC):
                 return self._patch_jadeite()
 
     def unpatch_game(self, game: Game):
-        pass
+        if not game.is_installed():
+            raise PatcherError(GameNotInstalledError("Game is not installed"))
+        match self._patch_type:
+            case PatchType.Astra:
+                self._unpatch_astra(game)
+            case PatchType.Jadeite:
+                self._unpatch_jadeite()
 
-    def check_telemetry(self):
-        pass
+    def check_telemetry(self) -> list[str]:
+        return telemetry.check_telemetry()
 
-    def block_telemetry(self):
-        pass
+    def block_telemetry(self, telemetry_list: list[str] = None):
+        if not telemetry_list:
+            telemetry_list = telemetry.check_telemetry()
+        telemetry.block_telemetry(telemetry_list)
