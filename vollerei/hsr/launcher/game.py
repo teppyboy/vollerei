@@ -3,7 +3,7 @@ from os import PathLike
 from pathlib import Path
 from enum import Enum
 from vollerei.abc.launcher.game import GameABC
-from vollerei.hsr.constants import MD5SUMS
+from vollerei.hsr.constants import md5sums
 
 
 class GameChannel(Enum):
@@ -14,9 +14,49 @@ class GameChannel(Enum):
 class Game(GameABC):
     def __init__(self, path: PathLike = None):
         self._path: Path | None = Path(path) if path else None
+        self._version_override: tuple[int, int, int] | None = None
+        self._channel_override: GameChannel | None = None
+
+    @property
+    def version_override(self) -> tuple[int, int, int] | None:
+        """
+        Override the game version.
+
+        This can be useful if you want to override the version of the game
+        and additionally working around bugs.
+        """
+        return self._version_override
+
+    @version_override.setter
+    def version_override(self, version: tuple[int, int, int] | str | None):
+        if isinstance(version, str):
+            version = tuple(int(i) for i in version.split("."))
+        self._version_override = version
+
+    @property
+    def channel_override(self) -> GameChannel | None:
+        """
+        Override the game channel.
+
+        Because game channel detection isn't implemented yet, you may need
+        to use this for some functions to work.
+
+        This can be useful if you want to override the channel of the game
+        and additionally working around bugs.
+        """
+        return self._channel_override
+
+    @channel_override.setter
+    def channel_override(self, channel: GameChannel | str | None):
+        if isinstance(channel, str):
+            channel = GameChannel[channel]
+        self._channel_override = channel
 
     @property
     def path(self) -> Path | None:
+        """
+        Path to the game folder.
+        """
         return self._path
 
     @path.setter
@@ -24,6 +64,9 @@ class Game(GameABC):
         self._path = Path(path)
 
     def data_folder(self) -> Path:
+        """
+        Path to the game data folder.
+        """
         return self._path.joinpath("StarRail_Data")
 
     def is_installed(self) -> bool:
@@ -115,11 +158,15 @@ class Game(GameABC):
 
         Only works for Star Rail version 1.0.5, other versions will return None
 
+        This is not needed for game patching, since the patcher will automatically
+        detect the channel.
+
         Returns:
             GameChannel: The current game channel.
         """
-        if self.get_version() == (1, 0, 5):
-            for channel, v in MD5SUMS["1.0.5"].values():
+        version = self._version_override or self.get_version()
+        if version == (1, 0, 5):
+            for channel, v in md5sums["1.0.5"].values():
                 for file, md5sum in v.values():
                     if (
                         md5(self._path.joinpath(file).read_bytes()).hexdigest()
