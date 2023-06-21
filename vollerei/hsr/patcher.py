@@ -30,6 +30,8 @@ class PatchType(Enum):
 class Patcher(PatcherABC):
     """
     Patch helper for HSR.
+
+    By default this will use Jadeite as it is maintained and more stable.
     """
 
     def __init__(self, patch_type: PatchType = PatchType.Jadeite):
@@ -43,6 +45,9 @@ class Patcher(PatcherABC):
 
     @property
     def patch_type(self) -> PatchType:
+        """
+        Patch type, can be either Astra or Jadeite
+        """
         return self._patch_type
 
     @patch_type.setter
@@ -68,6 +73,9 @@ class Patcher(PatcherABC):
             f.write(file_version)
 
     def update_patch(self):
+        """
+        Update the patch
+        """
         try:
             match self._patch_type:
                 case PatchType.Astra:
@@ -158,6 +166,15 @@ class Patcher(PatcherABC):
         rmtree(self._jadeite, ignore_errors=True)
 
     def patch_game(self, game: Game):
+        """
+        Patch the game
+
+        If you use Jadeite (by default), this will just download Jadeite files
+        and won't actually patch the game because Jadeite will do that automatically.
+
+        Args:
+            game (Game): The game to patch
+        """
         if not game.is_installed():
             raise PatcherError(GameNotInstalledError("Game is not installed"))
         match self._patch_type:
@@ -167,6 +184,14 @@ class Patcher(PatcherABC):
                 return self._patch_jadeite()
 
     def unpatch_game(self, game: Game):
+        """
+        Unpatch the game
+
+        If you use Jadeite (by default), this will just delete Jadeite files.
+
+        Args:
+            game (Game): The game to unpatch
+        """
         if not game.is_installed():
             raise PatcherError(GameNotInstalledError("Game is not installed"))
         match self._patch_type:
@@ -176,9 +201,23 @@ class Patcher(PatcherABC):
                 self._unpatch_jadeite()
 
     def check_telemetry(self) -> list[str]:
+        """
+        Check if telemetry servers are accessible by the user
+
+        Returns:
+            list[str]: A list of telemetry servers that are accessible
+        """
         return telemetry.check_telemetry()
 
     def block_telemetry(self, telemetry_list: list[str] = None):
+        """
+        Block the telemetry servers
+
+        If telemetry_list is not provided, it will be checked automatically.
+
+        Args:
+            telemetry_list (list[str], optional): A list of telemetry servers to block.
+        """
         if not telemetry_list:
             telemetry_list = telemetry.check_telemetry()
         telemetry.block_telemetry(telemetry_list)
