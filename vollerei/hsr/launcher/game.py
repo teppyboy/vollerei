@@ -3,7 +3,7 @@ from os import PathLike
 from pathlib import Path
 from enum import Enum
 from vollerei.abc.launcher.game import GameABC
-from vollerei.hsr.constants import md5sums
+from vollerei.hsr.constants import MD5SUMS
 
 
 class GameChannel(Enum):
@@ -12,6 +12,10 @@ class GameChannel(Enum):
 
 
 class Game(GameABC):
+    """
+    Manages the game installation
+    """
+
     def __init__(self, path: PathLike = None):
         self._path: Path | None = Path(path) if path else None
         self._version_override: tuple[int, int, int] | None = None
@@ -166,7 +170,7 @@ class Game(GameABC):
         """
         version = self._version_override or self.get_version()
         if version == (1, 0, 5):
-            for channel, v in md5sums["1.0.5"].values():
+            for channel, v in MD5SUMS["1.0.5"].values():
                 for file, md5sum in v.values():
                     if (
                         md5(self._path.joinpath(file).read_bytes()).hexdigest()
