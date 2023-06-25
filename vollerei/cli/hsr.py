@@ -82,8 +82,10 @@ class HSR:
             if not ask("Do you still want to patch?"):
                 print("Patching aborted.")
                 return
+        print("Checking telemetry hosts...", end=" ")
         telemetry_list = self._patcher.check_telemetry()
         if telemetry_list:
+            print("FOUND")
             print("Telemetry hosts found: ")
             for host in telemetry_list:
                 print(f" - {host}")
@@ -100,6 +102,8 @@ class HSR:
                     print("Cannot continue, please block them manually then try again.")
                     return
                 print("Continuing anyway...")
+        else:
+            print("OK")
         if not self.__update_patch():
             return
         match self._patcher.patch_type:
