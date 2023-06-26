@@ -23,7 +23,7 @@ not be responsible for it. (*Turn-based game* have a ban wave already, see AAGL 
 This launcher focuses on the API and CLI, for GUI-based launcher you may want to check out:
 
 + [An Anime Game Launcher](https://aagl.launcher.moe/) - That famous launcher for an open-world anime game.
-+ [Yaagl]
++ [Yaagl](https://github.com/3Shain/yet-another-anime-game-launcher) - All in one launcher for MacOS.
 + [Honkers launcher](https://github.com/an-anime-team/honkers-launcher) - Another launcher for an anime game.
 + [Honkers Railway](https://github.com/an-anime-team/the-honkers-railway-launcher) - A launcher for a turn-based anime game.
 
