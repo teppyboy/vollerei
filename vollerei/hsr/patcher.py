@@ -218,6 +218,4 @@ class Patcher(PatcherABC):
         Args:
             telemetry_list (list[str], optional): A list of telemetry servers to block.
         """
-        if not telemetry_list:
-            telemetry_list = telemetry.check_telemetry()
         telemetry.block_telemetry(telemetry_list)
