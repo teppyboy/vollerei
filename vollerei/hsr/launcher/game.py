@@ -2,6 +2,7 @@ from hashlib import md5
 from os import PathLike
 from pathlib import Path
 from enum import Enum
+from vollerei.common import ConfigFile
 from vollerei.abc.launcher.game import GameABC
 from vollerei.hsr.constants import MD5SUMS
 
@@ -89,6 +90,24 @@ class Game(GameABC):
             return False
         return True
 
+    def _get_version_config(self) -> tuple[int, int, int]:
+        cfg_file = self._path.joinpath("config.ini")
+        if not cfg_file.exists():
+            return (0, 0, 0)
+        cfg = ConfigFile(cfg_file)
+        if "General" not in cfg.sections():
+            return (0, 0, 0)
+        if "game_version" not in cfg["General"]:
+            return (0, 0, 0)
+        version_str = cfg["General"]["game_version"]
+        if version_str.count(".") != 2:
+            return (0, 0, 0)
+        try:
+            version = tuple(int(i) for i in version_str.split("."))
+        except Exception:
+            return (0, 0, 0)
+        return version
+
     def get_version(self) -> tuple[int, int, int]:
         """
         Get the current installed game version.
@@ -116,36 +135,40 @@ class Game(GameABC):
         version_bytes: list[list[bytes]] = [[], [], []]
         version_ptr = 0
         correct = True
-        with self.data_folder().joinpath("data.unity3d").open("rb") as f:
-            f.seek(0x7D0)  # 2000 in decimal
-            for byte in f.read(10000):
-                match byte:
-                    case 0:
-                        version_bytes = [[], [], []]
-                        version_ptr = 0
-                        correct = True
-                    case 46:
-                        version_ptr += 1
-                        if version_ptr > 2:
-                            correct = False
-                    case 38:
-                        if (
-                            correct
-                            and len(version_bytes[0]) > 0
-                            and len(version_bytes[1]) > 0
-                            and len(version_bytes[2]) > 0
-                        ):
-                            return (
-                                bytes_to_int(version_bytes[0]),
-                                bytes_to_int(version_bytes[1]),
-                                bytes_to_int(version_bytes[2]),
-                            )
-                    case _:
-                        if correct and byte in allowed:
-                            version_bytes[version_ptr].append(byte)
-                        else:
-                            correct = False
-        return (0, 0, 0)
+        try:
+            with self.data_folder().joinpath("data.unity3d").open("rb") as f:
+                f.seek(0x7D0)  # 2000 in decimal
+                for byte in f.read(10000):
+                    match byte:
+                        case 0:
+                            version_bytes = [[], [], []]
+                            version_ptr = 0
+                            correct = True
+                        case 46:
+                            version_ptr += 1
+                            if version_ptr > 2:
+                                correct = False
+                        case 38:
+                            if (
+                                correct
+                                and len(version_bytes[0]) > 0
+                                and len(version_bytes[1]) > 0
+                                and len(version_bytes[2]) > 0
+                            ):
+                                return (
+                                    bytes_to_int(version_bytes[0]),
+                                    bytes_to_int(version_bytes[1]),
+                                    bytes_to_int(version_bytes[2]),
+                                )
+                        case _:
+                            if correct and byte in allowed:
+                                version_bytes[version_ptr].append(byte)
+                            else:
+                                correct = False
+        except Exception:
+            pass
+        # Fallback to config.ini
+        return self._get_version_config()
 
     def get_version_str(self) -> str:
         """
