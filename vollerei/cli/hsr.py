@@ -79,9 +79,10 @@ class HSR:
             print(
                 "Windows is supported officialy by the game, so no patching is needed."
             )
-            if not ask("Do you still want to patch?"):
-                print("Patching aborted.")
-                return
+        print("By patching you are breaking the ToS, use at your own risk.")
+        if not ask("Do you want to patch the game?"):
+            print("Patching aborted.")
+            return
         print("Checking telemetry hosts...", end=" ")
         telemetry_list = self._patcher.check_telemetry()
         if telemetry_list:
@@ -89,10 +90,13 @@ class HSR:
             print("Telemetry hosts found: ")
             for host in telemetry_list:
                 print(f" - {host}")
-            if not ask(
-                "Do you want to block these hosts? (Without blocking you can't use the patch)"
-            ):
+            print(
+                "To prevent the game from sending data about the patch, "
+                + "we need to block these hosts."
+            )
+            if not ask("Do you want to block these hosts?"):
                 print("Patching aborted.")
+                print("Please block these hosts manually then try again.")
                 return
             try:
                 self._patcher.block_telemetry(telemetry_list=telemetry_list)
