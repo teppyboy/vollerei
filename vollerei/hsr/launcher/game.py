@@ -115,6 +115,9 @@ class Game(GameABC):
         Credits to An Anime Team for the code that does the magic:
         https://github.com/an-anime-team/anime-game-core/blob/main/src/games/star_rail/game.rs#L49
 
+        If the above method fails, it'll fallback to read the config.ini file
+        for the version. (Doesn't work with AAGL-based launchers)
+
         This returns (0, 0, 0) if the version could not be found
         (usually indicates the game is not installed)
 
