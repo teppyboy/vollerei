@@ -1,15 +1,10 @@
 from hashlib import md5
 from os import PathLike
 from pathlib import Path
-from enum import Enum
+from vollerei.hsr.launcher.enums import GameChannel
 from vollerei.common import ConfigFile
 from vollerei.abc.launcher.game import GameABC
 from vollerei.hsr.constants import MD5SUMS
-
-
-class GameChannel(Enum):
-    Overseas = 0
-    China = 1
 
 
 class Game(GameABC):

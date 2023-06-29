@@ -100,10 +100,40 @@ class Latest:
         self.segments = segments
         self.package_size = package_size
 
+    @staticmethod
+    def from_dict(data: dict) -> "Latest":
+        if data["name"] == "":
+            if data["path"] == "":
+                data["name"] = data["segments"][0]["path"].split("/")[-1]
+            else:
+                data["name"] = data["path"].split("/")[-1]
+        return Latest(
+            data["name"],
+            data["version"],
+            data["path"],
+            data["size"],
+            data["md5"],
+            data["entry"],
+            [VoicePack.from_dict(i) for i in data["voice_packs"]],
+            data["decompressed_path"],
+            [Segment.from_dict(i) for i in data["segments"]],
+            data["package_size"],
+        )
+
 
 class Game:
     latest: Latest
     diffs: list[Diff]
+
+    def __init__(self, latest: Latest, diffs: list[Diff]) -> None:
+        self.latest = latest
+        self.diffs = diffs
+
+    @staticmethod
+    def from_dict(data: dict) -> "Game":
+        return Game(
+            Latest.from_dict(data["latest"]), [Diff.from_dict(i) for i in data["diffs"]]
+        )
 
 
 class Plugin:
@@ -137,7 +167,7 @@ class DeprecatedFile:
     md5: str | None
 
 
-class Data:
+class Resource:
     """
     Data class for /resource endpoint
     """
@@ -168,6 +198,14 @@ class Data:
         sdk: None,
         deprecated_files: list[DeprecatedFile],
     ) -> None:
+        # Fixups
+        game_latest_path = game.latest.path
+        if game.latest.name == "":
+            print("A")
+            if game_latest_path == "":
+                game.latest.name = game.latest.segments[0].path.split("/")[-1]
+            else:
+                game.latest.name = game_latest_path.split("/")[-1]
         self.game = game
         self.plugin = plugin
         self.web_url = web_url
@@ -176,3 +214,18 @@ class Data:
         self.deprecated_packages = deprecated_packages
         self.sdk = sdk
         self.deprecated_files = deprecated_files
+
+    @staticmethod
+    def from_dict(json: dict) -> "Resource":
+        return Resource(
+            Game.from_dict(json["game"]),
+            LauncherPlugin.from_dict(json["plugin"]),
+            json["web_url"],
+            json["force_update"],
+            Game.from_dict(json["pre_download_game"])
+            if json["pre_download_game"]
+            else None,
+            [DeprecatedPackage.from_dict(x) for x in json["deprecated_packages"]],
+            json["sdk"],
+            [DeprecatedFile.from_dict(x) for x in json["deprecated_files"]],
+        )
