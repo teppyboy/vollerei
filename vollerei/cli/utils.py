@@ -1,4 +1,5 @@
 no_confirm = False
+silent_message = False
 
 
 def ask(question: str):
@@ -12,3 +13,12 @@ def ask(question: str):
         # Pacman way, treat all other answers as no
         else:
             return False
+
+
+def msg(*args, **kwargs):
+    """
+    Print but silentable
+    """
+    if silent_message:
+        return
+    print(*args, **kwargs)

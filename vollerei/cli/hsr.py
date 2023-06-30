@@ -1,6 +1,6 @@
 from traceback import print_exc
 from platform import system
-from vollerei.cli.utils import ask
+from vollerei.cli.utils import ask, msg
 from vollerei.hsr import Game, Patcher
 from vollerei.exceptions.patcher import PatcherError, PatchUpdateError
 from vollerei.hsr.patcher import PatchType
@@ -11,8 +11,8 @@ class HSR:
         self, game_path=None, patch_type: PatchType = PatchType.Jadeite
     ) -> None:
         self._game = Game(game_path)
-        print("Game directory:", self._game.path)
-        print("Game version:", self._game.get_version_str())
+        msg("Game directory:", self._game.path)
+        msg("Game version:", self._game.get_version_str())
         self._patcher = Patcher()
         self._patcher.patch_type = patch_type
 
@@ -115,3 +115,6 @@ class HSR:
                 self.__patch_jadeite()
             case PatchType.Astra:
                 self.__patch_astra()
+
+    def get_version(self):
+        print(self._game.get_version_str())
