@@ -10,7 +10,7 @@ def get_resource(channel: GameChannel = GameChannel.Overseas) -> Resource:
     Get game resource information from the launcher API.
 
     Args:
-        channel: Game channel to get the resource information from. (os, cn)
+        channel: Game channel to get the resource information from.
 
     Returns:
         Resource: Game resource information.
