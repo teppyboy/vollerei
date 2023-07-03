@@ -1,6 +1,7 @@
 from hashlib import md5
 from os import PathLike
 from pathlib import Path
+from vollerei.exceptions.game import GameNotInstalledError
 from vollerei.hsr.launcher.enums import GameChannel
 from vollerei.common import ConfigFile
 from vollerei.abc.launcher.game import GameABC
@@ -67,7 +68,10 @@ class Game(GameABC):
         """
         Path to the game data folder.
         """
-        return self._path.joinpath("StarRail_Data")
+        try:
+            return self._path.joinpath("StarRail_Data")
+        except AttributeError:
+            raise GameNotInstalledError("Game path is not set.")
 
     def is_installed(self) -> bool:
         """

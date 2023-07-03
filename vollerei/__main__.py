@@ -1,5 +1,4 @@
-from vollerei.cli import CLI
-from fire import Fire
+from vollerei.cli import app
 
 
-Fire(CLI, name="vollerei")
+app()

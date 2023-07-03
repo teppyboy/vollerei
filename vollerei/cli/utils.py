@@ -3,8 +3,8 @@ silent_message = False
 
 
 def ask(question: str):
-    if no_confirm:
-        print(question + " [Y/n]: Y")
+    if no_confirm or silent_message:
+        msg(question + " [Y/n]: Y")
         return True
     while True:
         answer = input(question + " [Y/n]: ")
