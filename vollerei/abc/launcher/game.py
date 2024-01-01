@@ -1,12 +1,17 @@
 from abc import ABC, abstractmethod
 from os import PathLike
 from pathlib import Path
+from typing import Any
 
 
 class GameABC(ABC):
     """
     Manages the game installation
     """
+
+    path: Path
+    version_override: tuple[int, int, int] | None
+    channel_override: Any
 
     def __init__(self, path: PathLike = None):
         pass

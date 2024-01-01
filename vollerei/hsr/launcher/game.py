@@ -1,20 +1,29 @@
 from hashlib import md5
+from io import IOBase
 from os import PathLike
 from pathlib import Path
-from vollerei.exceptions.game import GameNotInstalledError
-from vollerei.hsr.launcher.enums import GameChannel
-from vollerei.common import ConfigFile
 from vollerei.abc.launcher.game import GameABC
+from vollerei.common import ConfigFile, functions
+from vollerei.common.api import resource
+from vollerei.exceptions.game import GameNotInstalledError, PreDownloadNotAvailable
 from vollerei.hsr.constants import MD5SUMS
+from vollerei.hsr.launcher.enums import GameChannel
+from vollerei.hsr.launcher import api
+from vollerei.paths import cache_path
 
 
 class Game(GameABC):
     """
     Manages the game installation
+
+    Since channel detection isn't implemented yet, most functions assume you're
+    using the overseas version of the game. You can override channel by setting
+    the property `channel_override` to the channel you want to use.
     """
 
     def __init__(self, path: PathLike = None):
         self._path: Path | None = Path(path) if path else None
+        self._cache: Path = cache_path.joinpath("game")
         self._version_override: tuple[int, int, int] | None = None
         self._channel_override: GameChannel | None = None
 
@@ -76,6 +85,9 @@ class Game(GameABC):
     def is_installed(self) -> bool:
         """
         Check if the game is installed.
+
+        Returns:
+            bool: True if the game is installed, False otherwise.
         """
         if self._path is None:
             return False
@@ -89,7 +101,18 @@ class Game(GameABC):
             return False
         return True
 
-    def _get_version_config(self) -> tuple[int, int, int]:
+    def get_version_config(self) -> tuple[int, int, int]:
+        """
+        Get the current installed game version from config.ini.
+
+        Using this is not recommended, as only official launcher creates
+        and uses this file, instead you should use `get_version()`.
+
+        This returns (0, 0, 0) if the version could not be found.
+
+        Returns:
+            tuple[int, int, int]: Game version.
+        """
         cfg_file = self._path.joinpath("config.ini")
         if not cfg_file.exists():
             return (0, 0, 0)
@@ -115,10 +138,12 @@ class Game(GameABC):
         https://github.com/an-anime-team/anime-game-core/blob/main/src/games/star_rail/game.rs#L49
 
         If the above method fails, it'll fallback to read the config.ini file
-        for the version. (Doesn't work with AAGL-based launchers)
+        for the version, which is not recommended (as described in
+        `get_version_config()` docs)
 
         This returns (0, 0, 0) if the version could not be found
-        (usually indicates the game is not installed)
+        (usually indicates the game is not installed), and in fact `is_installed()` uses
+        this method to check if the game is installed too.
 
         Returns:
             tuple[int, int, int]: The version as a tuple of integers.
@@ -170,22 +195,23 @@ class Game(GameABC):
         except Exception:
             pass
         # Fallback to config.ini
-        return self._get_version_config()
+        return self.get_version_config()
 
-    def get_version_str(self) -> str:
+    def version_as_str(self, version: tuple[int, int, int]) -> str:
         """
-        Same as get_version, but returns a string instead.
+        Convert a version tuple to a string.
 
         Returns:
             str: The version as a string.
         """
-        return ".".join(str(i) for i in self.get_version())
+        return ".".join(str(i) for i in version)
 
     def get_channel(self) -> GameChannel:
         """
         Get the current game channel.
 
-        Only works for Star Rail version 1.0.5, other versions will return None
+        Only works for Star Rail version 1.0.5, other versions will return the
+        overridden channel or None if no channel is overridden.
 
         This is not needed for game patching, since the patcher will automatically
         detect the channel.
@@ -209,3 +235,71 @@ class Game(GameABC):
                             return GameChannel.Overseas
         else:
             return
+
+    def _get_game(self, pre_download: bool) -> resource.Game:
+        channel = self._channel_override or self.get_channel()
+        if pre_download:
+            game = api.get_resource(channel=channel).pre_download_game
+            if not game:
+                raise PreDownloadNotAvailable("Pre-download version is not available.")
+            return game
+        return api.get_resource(channel=channel).game
+
+    def get_update(self, pre_download: bool = False) -> resource.Diff | None:
+        """
+        Get the current game update.
+
+        Returns a `Diff` object that contains the update information or
+        None if the game is not installed or already up-to-date.
+        """
+        if not self.is_installed():
+            return None
+        version = self.version_as_str(self._version_override or self.get_version())
+        for diff in self._get_game(pre_download=pre_download).diffs:
+            if diff.version == version:
+                return diff
+        return None
+
+    def apply_update_archive(
+        self, archive_file: PathLike | IOBase, auto_repair: bool = True
+    ) -> None:
+        """
+        Apply an update archive to the game, it can be the game update or a
+        voicepack update.
+
+        `archive_file` can be a path to the archive file or a file-like object,
+        like if you have very high amount of RAM and want to download the update
+        to memory instead of disk, this can be useful for you.
+
+        `auto_repair` is used to determine whether to repair the file if it's
+        broken. If it's set to False, then it'll raise an exception if the file
+        is broken.
+
+        Args:
+            archive_file (PathLike | IOBase): The archive file.
+            auto_repair (bool, optional): Whether to repair the file if it's broken.
+        """
+        if not self.is_installed():
+            raise GameNotInstalledError("Game is not installed.")
+        if not isinstance(archive_file, IOBase):
+            archive_file = Path(archive_file)
+        # Hello hell again, dealing with HDiffPatch and all the things again.
+        functions.apply_update_archive(self, archive_file, auto_repair=auto_repair)
+
+    def install_update(
+        self, update_info: resource.Diff = None, auto_repair: bool = True
+    ):
+        """
+        Install an update from a `Diff` object.
+
+        You may want to download the update manually and pass it to
+        `apply_update_archive()` instead for better control.
+
+        Args:
+            update_info (Diff, optional): The update information. Defaults to None.
+        """
+        if not self.is_installed():
+            raise GameNotInstalledError("Game is not installed.")
+        if not update_info:
+            update_info = self.get_update()
+        pass

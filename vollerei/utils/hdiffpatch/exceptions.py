@@ -10,13 +10,19 @@ class HPatchZError(HDiffPatchError):
     pass
 
 
+class HPatchZPatchError(HPatchZError):
+    """Raised when hpatchz patch fails"""
+
+    pass
+
+
 class NotInstalledError(HPatchZError):
     """Raised when HDiffPatch is not installed"""
 
     pass
 
 
-class HPatchZPatchError(HPatchZError):
-    """Raised when hpatchz patch fails"""
+class PlatformNotSupportedError(HPatchZError):
+    """Raised when HDiffPatch is not available for your platform"""
 
     pass

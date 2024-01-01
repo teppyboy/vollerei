@@ -8,6 +8,12 @@ class GameError(VollereiError):
 
 
 class GameNotInstalledError(GameError):
-    """Exception raised when the game is not installed."""
+    """Game is not installed."""
+
+    pass
+
+
+class PreDownloadNotAvailable(GameError):
+    """Pre-download version is not available."""
 
     pass

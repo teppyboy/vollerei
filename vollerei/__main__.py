@@ -1,4 +1,4 @@
-from vollerei.cli import app
+from vollerei.cli import run
 
 
-app()
+run()

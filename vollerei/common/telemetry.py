@@ -1,5 +1,5 @@
 import requests
-import concurrent
+import concurrent.futures
 from vollerei.utils import write_hosts
 from vollerei.constants import TELEMETRY_HOSTS
 
