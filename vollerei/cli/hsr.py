@@ -235,10 +235,7 @@ class PatchTelemetryCommand(Command):
                 + "we need to <comment>block these hosts.</comment>"
             )
             if not self.confirm("Do you want to block them?"):
-                self.line("<error>Patching aborted.</error>")
-                self.line(
-                    "<error>Please block these hosts manually then try again.</error>"
-                )
+                self.line("<error>Blocking aborted.</error>")
                 return
             try:
                 patcher.block_telemetry(telemetry_list=telemetry_list)
@@ -246,13 +243,6 @@ class PatchTelemetryCommand(Command):
                 self.line_error(
                     f"<error>Couldn't block telemetry hosts: {e.__context__}</error>"
                 )
-                # There's a good reason for this.
-                if system() != "Windows":
-                    self.line(
-                        "<error>Cannot continue, please block them manually then try again.</error>"
-                    )
-                    return
-                self.line("<warn>Continuing anyway...</warn>")
         else:
             progress.finish("<comment>No telemetry hosts found.</comment>")
 
