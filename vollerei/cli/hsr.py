@@ -1,5 +1,6 @@
 from cleo.commands.command import Command
 from cleo.helpers import option, argument
+from copy import deepcopy
 from platform import system
 from vollerei.hsr.launcher.enums import GameChannel
 from vollerei.cli import utils
@@ -209,6 +210,53 @@ class PatchInstallCommand(Command):
                 self.astra()
 
 
+PatchCommand = deepcopy(PatchInstallCommand)
+PatchCommand.name = "hsr patch"
+
+
+class PatchTelemetryCommand(Command):
+    name = "hsr patch telemetry"
+    description = "Checks for telemetry hosts and block them."
+    options = default_options
+
+    def handle(self):
+        progress = utils.ProgressIndicator(self)
+        progress.start("Checking telemetry hosts... ")
+        telemetry_list = patcher.check_telemetry()
+        if telemetry_list:
+            progress.finish("<warn>Telemetry hosts were found.</warn>")
+            self.line("Below is the list of telemetry hosts that need to be blocked:")
+            print()
+            for host in telemetry_list:
+                self.line(f"{host}")
+            print()
+            self.line(
+                "To prevent the game from sending data about the patch, "
+                + "we need to <comment>block these hosts.</comment>"
+            )
+            if not self.confirm("Do you want to block them?"):
+                self.line("<error>Patching aborted.</error>")
+                self.line(
+                    "<error>Please block these hosts manually then try again.</error>"
+                )
+                return
+            try:
+                patcher.block_telemetry(telemetry_list=telemetry_list)
+            except Exception as e:
+                self.line_error(
+                    f"<error>Couldn't block telemetry hosts: {e.__context__}</error>"
+                )
+                # There's a good reason for this.
+                if system() != "Windows":
+                    self.line(
+                        "<error>Cannot continue, please block them manually then try again.</error>"
+                    )
+                    return
+                self.line("<warn>Continuing anyway...</warn>")
+        else:
+            progress.finish("<comment>No telemetry hosts found.</comment>")
+
+
 class GetVersionCommand(Command):
     name = "hsr version"
     description = "Gets the local game version"
@@ -338,9 +386,11 @@ class ApplyUpdateArchive(Command):
 
 commands = [
     ApplyUpdateArchive,
-    UpdateCommand,
+    GetVersionCommand,
+    PatchCommand,
+    PatchInstallCommand,
+    PatchTelemetryCommand,
     PatchTypeCommand,
     UpdatePatchCommand,
-    PatchInstallCommand,
-    GetVersionCommand,
+    UpdateCommand,
 ]

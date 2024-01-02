@@ -69,8 +69,15 @@ def apply_update_archive(
         try:
             _hdiff.patch_file(file, file.with_suffix(""), patchpath)
         except HPatchZPatchError:
-            # Let the game download the file.
-            file.rename(file.with_suffix(""))
+            if auto_repair:
+                try:
+                    game.repair_file(game.path.joinpath(file.with_suffix("")))
+                except Exception:
+                    # Let the game download the file.
+                    file.rename(file.with_suffix(""))
+            else:
+                # Let the game download the file.
+                file.rename(file.with_suffix(""))
             return
         finally:
             patchpath.unlink()
