@@ -20,7 +20,7 @@ class LAUNCHER_API:
     }
 
 
-LATEST_VERSION = (1, 1, 0)
+LATEST_VERSION = (1, 6, 0)
 MD5SUMS = {
     "1.0.5": {
         "cn": {

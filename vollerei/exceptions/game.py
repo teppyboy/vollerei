@@ -13,6 +13,30 @@ class GameNotInstalledError(GameError):
     pass
 
 
+class GameAlreadyUpdatedError(GameError):
+    """Game is already updated."""
+
+    pass
+
+
+class GameAlreadyInstalledError(GameError):
+    """Game is already installed."""
+
+    pass
+
+
+class ScatteredFilesNotAvailableError(GameError):
+    """Scattered files are not available."""
+
+    pass
+
+
+class GameNotUpdatedError(GameError):
+    """Game is not updated."""
+
+    pass
+
+
 class PreDownloadNotAvailable(GameError):
     """Pre-download version is not available."""
 

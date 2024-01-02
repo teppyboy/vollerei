@@ -19,11 +19,9 @@ class Paths:
     @staticmethod
     def set_base_path(path: PathLike):
         path = Path(path)
-        Paths.base_paths = PlatformDirs(
-            "vollerei", "tretrauit", roaming=True, base_path=path
-        )
-        Paths.cache_path = Paths.base_paths.site_cache_path
-        Paths.data_path = Paths.base_paths.site_data_path
+        Paths.base_paths = path
+        Paths.cache_path = Paths.base_paths.joinpath("Cache")
+        Paths.data_path = Paths.base_paths
         Paths.tools_data_path = Paths.data_path.joinpath("tools")
         Paths.tools_cache_path = Paths.cache_path.joinpath("tools")
         Paths.launcher_cache_path = Paths.cache_path.joinpath("launcher")
@@ -38,3 +36,15 @@ tools_data_path = Paths.tools_data_path
 tools_cache_path = Paths.tools_cache_path
 launcher_cache_path = Paths.launcher_cache_path
 utils_cache_path = Paths.utils_cache_path
+
+
+def set_base_path(path: PathLike):
+    Paths.set_base_path(path)
+    global base_paths, cache_path, data_path, tools_data_path, tools_cache_path, launcher_cache_path, utils_cache_path
+    base_paths = Paths.base_paths
+    cache_path = Paths.cache_path
+    data_path = Paths.data_path
+    tools_data_path = Paths.tools_data_path
+    tools_cache_path = Paths.tools_cache_path
+    launcher_cache_path = Paths.launcher_cache_path
+    utils_cache_path = Paths.utils_cache_path

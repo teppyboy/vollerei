@@ -29,11 +29,11 @@ def write_text(text, path: str | Path):
     """Write text to a file using pkexec (friendly gui)"""
     if isinstance(path, Path):
         path = str(path)
-    exec_su(f'pkexec tee "{path}"', stdin=text)
+    exec_su(f'tee "{path}"', stdin=text)
 
 
 def append_text(text, path: str | Path):
     """Append text to a file using pkexec (friendly gui)"""
     if isinstance(path, Path):
         path = str(path)
-    exec_su(f'pkexec tee -a "{path}"', stdin=text)
+    exec_su(f'tee -a "{path}"', stdin=text)

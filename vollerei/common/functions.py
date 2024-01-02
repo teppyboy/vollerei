@@ -1,4 +1,4 @@
-import concurrent
+import concurrent.futures
 from io import IOBase
 import json
 from pathlib import Path
@@ -65,13 +65,12 @@ def apply_update_archive(
         patchpath.unlink(missing_ok=True)
         # Extract patch file
         archive.extract(patch_file, game.temppath)
-        old_suffix = file.suffix
-        file = file.rename(file.with_suffix(".bak"))
+        file = file.rename(file.with_suffix(file.suffix + ".bak"))
         try:
-            _hdiff.patch_file(file, file.with_suffix(old_suffix), patchpath)
+            _hdiff.patch_file(file, file.with_suffix(""), patchpath)
         except HPatchZPatchError:
             # Let the game download the file.
-            file.rename(file.with_suffix(old_suffix))
+            file.rename(file.with_suffix(""))
             return
         finally:
             patchpath.unlink()
@@ -86,7 +85,7 @@ def apply_update_archive(
             # Repair file
             if not auto_repair:
                 raise e
-            game._repair_file(game.path.joinpath(file))
+            game.repair_file(game.path.joinpath(file))
 
     # Multi-threaded patching
     patch_jobs = []

@@ -1,16 +1,21 @@
 from cleo.commands.command import Command
 from cleo.helpers import option
 from platform import system
+from vollerei.hsr.launcher.enums import GameChannel
+from vollerei.paths import set_base_path, base_paths
 from vollerei.cli import utils
 from vollerei.exceptions.game import GameError
 from vollerei.hsr import Game, Patcher
 from vollerei.exceptions.patcher import PatcherError, PatchUpdateError
 from vollerei.hsr.patcher import PatchType
+from tqdm import tqdm
+import requests
 
 patcher = Patcher()
 
 
 default_options = [
+    option("channel", "c", description="Game channel", flag=False, default="overseas"),
     option(
         "game-path",
         "g",
@@ -19,6 +24,7 @@ default_options = [
         default=".",
     ),
     option("patch-type", "p", description="Patch type", flag=False),
+    option("temporary-path", "t", description="Temporary path", flag=False),
     option("silent", "s", description="Silent mode"),
     option("noconfirm", "y", description="Do not ask for confirmation"),
 ]
@@ -36,9 +42,17 @@ def callback(
     """
     game_path = command.option("game-path")
     patch_type = command.option("patch-type")
+    channel = command.option("channel")
     silent = command.option("silent")
     noconfirm = command.option("noconfirm")
-    State.game: Game = Game(game_path)
+    temporary_path = command.option("temporary-path")
+    if isinstance(channel, str):
+        channel = GameChannel[channel.capitalize()]
+    elif isinstance(channel, int):
+        channel = GameChannel(channel)
+    State.game: Game = Game(game_path, temporary_path)
+    if channel:
+        State.game.channel_override = channel
     if patch_type is None:
         patch_type = PatchType.Jadeite
     elif isinstance(patch_type, str):
@@ -212,7 +226,73 @@ class GetVersionCommand(Command):
             self.line_error(f"<error>Couldn't get game version: {e}</error>")
 
 
+class UpdateCommand(Command):
+    name = "hsr update"
+    description = "Updates the local game if available"
+    options = default_options + [
+        option(
+            "auto-repair", "R", description="Automatically repair the game if needed"
+        ),
+        option("pre-download", description="Pre-download the game if available"),
+    ]
+
+    def handle(self):
+        callback(command=self)
+        auto_repair = self.option("auto-repair")
+        pre_download = self.option("pre-download")
+        if auto_repair:
+            self.line("<comment>Auto-repair is enabled.</comment>")
+        progress = utils.ProgressIndicator(self)
+        progress.start("Checking for updates... ")
+        try:
+            update_diff = State.game.get_update(pre_download=pre_download)
+            game_info = State.game.get_remote_game(pre_download=pre_download)
+        except Exception as e:
+            progress.finish(
+                f"<error>Update checking failed with following error: {e} ({e.__context__})</error>"
+            )
+            return
+        if update_diff is None:
+            progress.finish("<comment>Game is already updated.</comment>")
+            return
+        progress.finish("<comment>Update available.</comment>")
+        self.line(
+            f"The current version is: <comment>{State.game.get_version_str()}</comment>"
+        )
+        self.line(
+            f"The latest version is: <comment>{game_info.latest.version}</comment>"
+        )
+        if not self.confirm("Do you want to update the game?"):
+            self.line("<error>Update aborted.</error>")
+            return
+        self.line("Downloading update package...")
+        out_path = State.game._cache.joinpath(update_diff.name)
+        try:
+            download_result = utils.download(
+                update_diff.path, out_path, file_len=update_diff.size
+            )
+        except Exception as e:
+            self.line_error(f"<error>Couldn't download update: {e}</error>")
+            return
+
+        if not download_result:
+            self.line_error("<error>Download failed.</error>")
+            return
+        self.line("Download completed.")
+        progress = utils.ProgressIndicator(self)
+        progress.start("Applying update package...")
+        try:
+            State.game.apply_update_archive(out_path, auto_repair=auto_repair)
+        except Exception as e:
+            progress.finish(
+                f"<error>Couldn't apply update: {e} ({e.__context__})</error>"
+            )
+            return
+        progress.finish("<comment>Update applied.</comment>")
+
+
 commands = [
+    UpdateCommand(),
     PatchTypeCommand(),
     UpdatePatchCommand(),
     PatchInstallCommand(),

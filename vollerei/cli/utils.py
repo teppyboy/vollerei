@@ -1,6 +1,9 @@
+import requests
 from cleo.commands.command import Command
+from pathlib import Path
 from threading import Thread
 from time import sleep
+from tqdm import tqdm
 
 
 no_confirm = False
@@ -57,6 +60,35 @@ class ProgressIndicator:
         Finish the progress indicator.
         """
         self.progress.finish(message=message, reset_indicator=reset_indicator)
+
+
+def download(url, out: Path, file_len: int = None, overwrite: bool = False) -> bool:
+    if overwrite:
+        out.unlink(missing_ok=True)
+    headers = {}
+    if out.exists():
+        cur_len = (out.stat()).st_size
+        headers |= {"Range": f"bytes={cur_len}-{file_len if file_len else ''}"}
+    else:
+        out.touch()
+    # Streaming, so we can iterate over the response.
+    response = requests.get(url=url, headers=headers, stream=True)
+    response.raise_for_status()
+    if response.status_code == 416:
+        return
+    # Sizes in bytes.
+    total_size = int(response.headers.get("content-length", 0))
+    block_size = 32768
+
+    with tqdm(total=total_size, unit="KB", unit_scale=True) as progress_bar:
+        with out.open("ab") as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+
+    if total_size != 0 and progress_bar.n != total_size:
+        return False
+    return True
 
 
 def msg(*args, **kwargs):

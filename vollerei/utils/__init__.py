@@ -52,6 +52,38 @@ __all__ = [
 ]
 
 
+def download(
+    url: str, out: Path, file_len: int = None, overwrite: bool = False
+) -> None:
+    """
+    Download to a path.
+
+    Args:
+        url (str): URL to download from.
+        path (Path): Path to download to.
+    """
+    if overwrite:
+        out.unlink(missing_ok=True)
+    headers = {}
+    if out.exists():
+        cur_len = (out.stat()).st_size
+        headers |= {"Range": f"bytes={cur_len}-{file_len if file_len else ''}"}
+    else:
+        out.touch()
+    # Streaming, so we can iterate over the response.
+    response = requests.get(url=url, headers=headers, stream=True)
+    response.raise_for_status()
+    if response.status == 416:
+        return
+    # Sizes in bytes.
+    block_size = 32768
+
+    with out.open("ab") as file:
+        for data in response.iter_content(block_size):
+            file.write(data)
+    return True
+
+
 def download_and_extract(url: str, path: Path) -> None:
     """
     Download and extract a zip file to a path.

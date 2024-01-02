@@ -17,7 +17,7 @@ def get_resource(channel: GameChannel = GameChannel.Overseas) -> Resource:
     Returns:
         Resource: Game resource information.
     """
-    resource_path: dict
+    resource_path: dict = None
     match channel:
         case GameChannel.Overseas:
             resource_path = LAUNCHER_API.OS
