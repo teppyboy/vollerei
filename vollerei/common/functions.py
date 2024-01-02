@@ -75,6 +75,8 @@ def apply_update_archive(
                 except Exception:
                     # Let the game download the file.
                     file.rename(file.with_suffix(""))
+                else:
+                    file.unlink()
             else:
                 # Let the game download the file.
                 file.rename(file.with_suffix(""))
