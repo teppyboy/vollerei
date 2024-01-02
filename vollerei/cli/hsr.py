@@ -1,21 +1,19 @@
 from cleo.commands.command import Command
-from cleo.helpers import option
+from cleo.helpers import option, argument
 from platform import system
 from vollerei.hsr.launcher.enums import GameChannel
-from vollerei.paths import set_base_path, base_paths
 from vollerei.cli import utils
 from vollerei.exceptions.game import GameError
 from vollerei.hsr import Game, Patcher
 from vollerei.exceptions.patcher import PatcherError, PatchUpdateError
 from vollerei.hsr.patcher import PatchType
-from tqdm import tqdm
-import requests
 
 patcher = Patcher()
 
 
 default_options = [
     option("channel", "c", description="Game channel", flag=False, default="overseas"),
+    option("force", "f", description="Force the command to run"),
     option(
         "game-path",
         "g",
@@ -289,12 +287,60 @@ class UpdateCommand(Command):
             )
             return
         progress.finish("<comment>Update applied.</comment>")
+        self.line("Setting version config... ")
+        self.set_version_config()
+        self.line(
+            f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
+        )
+
+
+class ApplyUpdateArchive(Command):
+    name = "hsr update apply-archive"
+    description = "Applies the update archive to the local game"
+    arguments = [argument("path", description="Path to the update archive")]
+    options = default_options + [
+        option(
+            "auto-repair", "R", description="Automatically repair the game if needed"
+        ),
+    ]
+
+    def handle(self):
+        callback(command=self)
+        auto_repair = self.option("auto-repair")
+        update_archive = self.argument("path")
+        if auto_repair:
+            self.line("<comment>Auto-repair is enabled.</comment>")
+        progress = utils.ProgressIndicator(self)
+        progress.start("Applying update package...")
+        try:
+            State.game.apply_update_archive(update_archive, auto_repair=auto_repair)
+        except Exception as e:
+            progress.finish(
+                f"<error>Couldn't apply update: {e} ({e.__context__})</error>"
+            )
+            return
+        progress.finish("<comment>Update applied.</comment>")
+        self.line("Setting version config... ")
+        try:
+            State.game.set_version_config()
+        except Exception as e:
+            self.line_error(f"<warn>Couldn't set version config: {e}</warn>")
+            self.line_error(
+                "This won't affect the overall experience, but if you're using the official launcher"
+            )
+            self.line_error(
+                "you may have to edit the file 'config.ini' manually to reflect the latest version."
+            )
+        self.line(
+            f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
+        )
 
 
 commands = [
-    UpdateCommand(),
-    PatchTypeCommand(),
-    UpdatePatchCommand(),
-    PatchInstallCommand(),
-    GetVersionCommand(),
+    ApplyUpdateArchive,
+    UpdateCommand,
+    PatchTypeCommand,
+    UpdatePatchCommand,
+    PatchInstallCommand,
+    GetVersionCommand,
 ]

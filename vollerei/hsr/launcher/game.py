@@ -347,7 +347,6 @@ class Game(GameABC):
             archive_file = Path(archive_file)
         # Hello hell again, dealing with HDiffPatch and all the things again.
         functions.apply_update_archive(self, archive_file, auto_repair=auto_repair)
-        self.set_version_config()
 
     def install_update(
         self, update_info: resource.Diff = None, auto_repair: bool = True
@@ -370,3 +369,4 @@ class Game(GameABC):
         archive_file = self._cache.joinpath(update_info.name)
         download(update_info.path, archive_file)
         self.apply_update_archive(archive_file=archive_file, auto_repair=auto_repair)
+        self.set_version_config()

@@ -3,7 +3,7 @@ from vollerei.cli import hsr
 
 application = Application()
 for command in hsr.commands:
-    application.add(command)
+    application.add(command())
 
 
 def run():
