@@ -13,6 +13,13 @@ _hdiff = HDiffPatch()
 def apply_update_archive(
     game: GameABC, archive_file: Path | IOBase, auto_repair: bool = True
 ) -> None:
+    """
+    Applies an update archive to the game, it can be the game update or a
+    voicepack update.
+
+    Because this function is shared for all games, you should use the game's
+    `apply_update_archive()` method instead.
+    """
     # Most code here are copied from worthless-launcher.
     # worthless-launcher uses asyncio for multithreading while this one uses
     # ThreadPoolExecutor, probably better for this use case.
