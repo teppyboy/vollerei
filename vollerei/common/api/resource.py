@@ -3,6 +3,9 @@ Class wrapper for API endpoint /resource
 """
 
 
+from vollerei.common.enums import VoicePackLanguage
+
+
 class Segment:
     """
     A segment of the game archive.
@@ -41,7 +44,7 @@ class VoicePack:
     `name` maybe converted from `path` if the server returns empty string.
 
     Attributes:
-        language (str): Language of the voice pack.
+        language (VoicePackLanguage): Language of the voice pack.
         name (str): Voice pack archive name.
         path (str): Voice pack download path.
         size (int): Voice pack size.
@@ -49,7 +52,7 @@ class VoicePack:
         package_size (int): Voice pack package size.
     """
 
-    language: str
+    language: VoicePackLanguage
     name: str
     path: str
     # str -> int
@@ -60,7 +63,7 @@ class VoicePack:
 
     def __init__(
         self,
-        language: str,
+        language: VoicePackLanguage,
         name: str,
         path: str,
         size: int,
@@ -77,7 +80,7 @@ class VoicePack:
     @staticmethod
     def from_dict(data: dict) -> "VoicePack":
         return VoicePack(
-            data["language"],
+            VoicePackLanguage.from_remote_str(data["language"]),
             data["name"],
             data["path"],
             int(data["size"]),
