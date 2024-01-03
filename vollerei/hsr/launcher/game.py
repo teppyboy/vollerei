@@ -302,7 +302,7 @@ class Game(GameABC):
         if not self.is_installed():
             return None
         version = (
-            ".".join(x for x in self._version_override)
+            ".".join(str(x) for x in self._version_override)
             if self._version_override
             else self.get_version_str()
         )
