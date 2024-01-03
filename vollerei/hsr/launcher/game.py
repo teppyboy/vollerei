@@ -224,6 +224,9 @@ class Game(GameABC):
         """
         Gets the current installed game version as a string.
 
+        Because this method uses `get_version()`, you should read the docs of
+        that method too.
+
         Returns:
             str: The version as a string.
         """
@@ -234,7 +237,7 @@ class Game(GameABC):
         Gets the current game channel.
 
         Only works for Star Rail version 1.0.5, other versions will return the
-        overridden channel or None if no channel is overridden.
+        overridden channel or GameChannel.Overseas if no channel is overridden.
 
         This is not needed for game patching, since the patcher will automatically
         detect the channel.
@@ -265,7 +268,17 @@ class Game(GameABC):
             # fallback to overseas.
             return self._channel_override or GameChannel.Overseas
 
-    def get_remote_game(self, pre_download: bool) -> resource.Game:
+    def get_remote_game(self, pre_download: bool = False) -> resource.Game:
+        """
+        Gets the current game information from remote.
+
+        Args:
+            pre_download (bool): Whether to get the pre-download version.
+                Defaults to False.
+
+        Returns:
+            A `Game` object that contains the game information.
+        """
         channel = self._channel_override or self.get_channel()
         if pre_download:
             game = api.get_resource(channel=channel).pre_download_game
@@ -278,8 +291,13 @@ class Game(GameABC):
         """
         Gets the current game update.
 
-        Returns a `Diff` object that contains the update information or
-        None if the game is not installed or already up-to-date.
+        Args:
+            pre_download (bool): Whether to get the pre-download version.
+                Defaults to False.
+
+        Returns:
+            A `Diff` object that contains the update information or
+            `None` if the game is not installed or already up-to-date.
         """
         if not self.is_installed():
             return None
@@ -297,8 +315,13 @@ class Game(GameABC):
         """
         Repairs a game file.
 
+        This will automatically handle backup and restore the file if the repair
+        fails.
+
         Args:
             file (PathLike): The file to repair.
+            pre_download (bool): Whether to get the pre-download version.
+                Defaults to False.
         """
         if not self.is_installed():
             raise GameNotInstalledError("Game is not installed.")
@@ -340,6 +363,7 @@ class Game(GameABC):
         Args:
             archive_file (PathLike | IOBase): The archive file.
             auto_repair (bool, optional): Whether to repair the file if it's broken.
+                Defaults to True.
         """
         if not self.is_installed():
             raise GameNotInstalledError("Game is not installed.")
@@ -355,10 +379,13 @@ class Game(GameABC):
         Installs an update from a `Diff` object.
 
         You may want to download the update manually and pass it to
-        `apply_update_archive()` instead for better control.
+        `apply_update_archive()` instead for better control, and after that
+        execute `set_version_config()` to set the game version.
 
         Args:
             update_info (Diff, optional): The update information. Defaults to None.
+            auto_repair (bool, optional): Whether to repair the file if it's broken.
+                Defaults to True.
         """
         if not self.is_installed():
             raise GameNotInstalledError("Game is not installed.")
