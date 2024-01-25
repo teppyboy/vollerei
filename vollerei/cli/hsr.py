@@ -25,7 +25,7 @@ default_options = [
     option("patch-type", "p", description="Patch type", flag=False),
     option("temporary-path", "t", description="Temporary path", flag=False),
     option("silent", "s", description="Silent mode"),
-    option("noconfirm", "y", description="Do not ask for confirmation"),
+    option("noconfirm", "y", description="Do not ask for confirmation (yes to all)"),
 ]
 
 
@@ -62,6 +62,16 @@ def callback(
     utils.silent_message = silent
     if noconfirm:
         utils.no_confirm = noconfirm
+
+        def confirm(
+            question: str, default: bool = False, true_answer_regex: str = r"(?i)^y"
+        ):
+            command.line(
+                f"<question>{question} (yes/no)</question> [<comment>{'yes' if default else 'no'}</comment>] y"
+            )
+            return True
+
+        command.confirm = confirm
     command.add_style("warn", fg="yellow")
 
 
@@ -116,8 +126,13 @@ class PatchInstallCommand(Command):
         self.line(
             "You need to <warn>run the game using Jadeite</warn> to use the patch."
         )
+        self.line(f'E.g: <question>{exe_path} "{State.game.path}"</question>')
+        print()
         self.line(
-            f'E.g: <question>I_WANT_A_BAN=1 {exe_path} "{State.game.path}"</question>'
+            "To activate the experimental patching method, set the environment variable BREAK_CATHACK=1"
+        )
+        self.line(
+            "Read more about it here: https://codeberg.org/mkrsym1/jadeite/issues/37"
         )
         print()
         self.line(

@@ -47,6 +47,7 @@ class ProgressIndicator:
             interval=interval, values=values
         )
         self.thread = Thread(target=self.auto_advance)
+        self.thread.daemon = True
 
     def start(self, message: str):
         """
