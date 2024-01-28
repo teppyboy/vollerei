@@ -34,8 +34,8 @@ class Game(GameABC):
         if not cache_path:
             cache_path = paths.cache_path
         cache_path = Path(cache_path)
-        self._cache: Path = cache_path.joinpath("game/hsr/")
-        self._cache.mkdir(parents=True, exist_ok=True)
+        self.cache: Path = cache_path.joinpath("game/hsr/")
+        self.cache.mkdir(parents=True, exist_ok=True)
         self._version_override: tuple[int, int, int] | None = None
         self._channel_override: GameChannel | None = None
 
@@ -431,7 +431,7 @@ class Game(GameABC):
         if not update_info or update_info.version == self.get_version_str():
             raise GameAlreadyUpdatedError("Game is already updated.")
         # Base game update
-        archive_file = self._cache.joinpath(update_info.name)
+        archive_file = self.cache.joinpath(update_info.name)
         download(update_info.path, archive_file)
         self.apply_update_archive(archive_file=archive_file, auto_repair=auto_repair)
         # Get installed voicepacks
@@ -441,7 +441,7 @@ class Game(GameABC):
             if remote_voicepack.language not in installed_voicepacks:
                 continue
             # Voicepack is installed, update it
-            archive_file = self._cache.joinpath(remote_voicepack.name)
+            archive_file = self.cache.joinpath(remote_voicepack.name)
             download(remote_voicepack.path, archive_file)
             self.apply_update_archive(
                 archive_file=archive_file, auto_repair=auto_repair

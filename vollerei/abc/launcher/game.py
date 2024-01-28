@@ -10,6 +10,7 @@ class GameABC(ABC):
     """
 
     path: Path
+    cache: Path
     version_override: tuple[int, int, int] | None
     channel_override: Any
 

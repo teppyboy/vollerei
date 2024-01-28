@@ -317,7 +317,7 @@ class UpdateCommand(Command):
             self.line("<error>Update aborted.</error>")
             return
         self.line("Downloading update package...")
-        out_path = State.game._cache.joinpath(update_diff.name)
+        out_path = State.game.cache.joinpath(update_diff.name)
         try:
             download_result = utils.download(
                 update_diff.path, out_path, file_len=update_diff.size
@@ -347,7 +347,7 @@ class UpdateCommand(Command):
             if remote_voicepack.language not in installed_voicepacks:
                 continue
             # Voicepack is installed, update it
-            archive_file = State.game._cache.joinpath(remote_voicepack.name)
+            archive_file = State.game.cache.joinpath(remote_voicepack.name)
             try:
                 download_result = utils.download(
                     update_diff.path, archive_file, file_len=update_diff.size

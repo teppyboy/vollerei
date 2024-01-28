@@ -67,7 +67,7 @@ def apply_update_archive(
 
     # Patch function
     def extract_and_patch(file, patch_file):
-        patchpath = game._cache.joinpath(patch_file)
+        patchpath = game.cache.joinpath(patch_file)
         # Delete old patch file if exists
         patchpath.unlink(missing_ok=True)
         # Extract patch file
