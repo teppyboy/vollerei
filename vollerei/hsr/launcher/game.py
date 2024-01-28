@@ -1,3 +1,4 @@
+from configparser import ConfigParser
 from hashlib import md5
 from io import IOBase
 from os import PathLike
@@ -5,6 +6,7 @@ from pathlib import Path
 from vollerei.abc.launcher.game import GameABC
 from vollerei.common import ConfigFile, functions
 from vollerei.common.api import resource
+from vollerei.common.enums import VoicePackLanguage
 from vollerei.exceptions.game import (
     GameAlreadyUpdatedError,
     GameNotInstalledError,
@@ -111,6 +113,42 @@ class Game(GameABC):
             return False
         return True
 
+    def get_channel(self) -> GameChannel:
+        """
+        Gets the current game channel.
+
+        Only works for Star Rail version 1.0.5, other versions will return the
+        overridden channel or GameChannel.Overseas if no channel is overridden.
+
+        This is not needed for game patching, since the patcher will automatically
+        detect the channel.
+
+        Returns:
+            GameChannel: The current game channel.
+        """
+        version = self._version_override or self.get_version()
+        if version == (1, 0, 5):
+            for channel, v in MD5SUMS["1.0.5"].values():
+                for file, md5sum in v.values():
+                    if (
+                        md5(self._path.joinpath(file).read_bytes()).hexdigest()
+                        != md5sum
+                    ):
+                        continue
+                    match channel:
+                        case "cn":
+                            return GameChannel.China
+                        case "os":
+                            return GameChannel.Overseas
+        else:
+            # if self._path.joinpath("StarRail_Data").is_dir():
+            #     return GameChannel.Overseas
+            # elif self._path.joinpath("StarRail_Data").exists():
+            #     return GameChannel.China
+            # No reliable method there, so we'll just return the overridden channel or
+            # fallback to overseas.
+            return self._channel_override or GameChannel.Overseas
+
     def get_version_config(self) -> tuple[int, int, int]:
         """
         Gets the current installed game version from config.ini.
@@ -147,11 +185,24 @@ class Game(GameABC):
         This method is meant to keep compatibility with the official launcher only.
         """
         cfg_file = self._path.joinpath("config.ini")
-        if not cfg_file.exists():
-            raise FileNotFoundError("config.ini not found.")
-        cfg = ConfigFile(cfg_file)
-        cfg.set("General", "game_version", self.get_version_str())
-        cfg.save()
+        if cfg_file.exists():
+            cfg = ConfigFile(cfg_file)
+            cfg.set("General", "game_version", self.get_version_str())
+            cfg.save()
+        else:
+            cfg = ConfigParser()
+            cfg.read_dict(
+                {
+                    "General": {
+                        "channel": 1,
+                        "cps": "hoyoverse_PC",
+                        "game_version": self.get_version_str(),
+                        "sub_channel": 1,
+                        "plugin_2_version": "0.0.1",
+                    }
+                }
+            )
+            cfg.write(cfg_file.open("w"))
 
     def get_version(self) -> tuple[int, int, int]:
         """
@@ -232,41 +283,27 @@ class Game(GameABC):
         """
         return ".".join(str(i) for i in self.get_version())
 
-    def get_channel(self) -> GameChannel:
+    def get_installed_voicepacks(self) -> list[VoicePackLanguage]:
         """
-        Gets the current game channel.
-
-        Only works for Star Rail version 1.0.5, other versions will return the
-        overridden channel or GameChannel.Overseas if no channel is overridden.
-
-        This is not needed for game patching, since the patcher will automatically
-        detect the channel.
+        Gets the installed voicepacks.
 
         Returns:
-            GameChannel: The current game channel.
+            list[VoicePackLanguage]: A list of installed voicepacks.
         """
-        version = self._version_override or self.get_version()
-        if version == (1, 0, 5):
-            for channel, v in MD5SUMS["1.0.5"].values():
-                for file, md5sum in v.values():
-                    if (
-                        md5(self._path.joinpath(file).read_bytes()).hexdigest()
-                        != md5sum
-                    ):
-                        continue
-                    match channel:
-                        case "cn":
-                            return GameChannel.China
-                        case "os":
-                            return GameChannel.Overseas
-        else:
-            # if self._path.joinpath("StarRail_Data").is_dir():
-            #     return GameChannel.Overseas
-            # elif self._path.joinpath("StarRail_Data").exists():
-            #     return GameChannel.China
-            # No reliable method there, so we'll just return the overridden channel or
-            # fallback to overseas.
-            return self._channel_override or GameChannel.Overseas
+        if not self.is_installed():
+            raise GameNotInstalledError("Game is not installed.")
+        voicepacks = []
+        for child in (
+            self.data_folder()
+            .joinpath("Persistent/Audio/AudioPackage/Windows/")
+            .iterdir()
+        ):
+            if child.is_dir():
+                try:
+                    voicepacks.append(VoicePackLanguage(child.name))
+                except ValueError:
+                    pass
+        return voicepacks
 
     def get_remote_game(self, pre_download: bool = False) -> resource.Game:
         """
@@ -393,7 +430,20 @@ class Game(GameABC):
             update_info = self.get_update()
         if not update_info or update_info.version == self.get_version_str():
             raise GameAlreadyUpdatedError("Game is already updated.")
+        # Base game update
         archive_file = self._cache.joinpath(update_info.name)
         download(update_info.path, archive_file)
         self.apply_update_archive(archive_file=archive_file, auto_repair=auto_repair)
+        # Get installed voicepacks
+        installed_voicepacks = self.get_installed_voicepacks()
+        # Voicepack update
+        for remote_voicepack in update_info.voice_packs:
+            if remote_voicepack.language not in installed_voicepacks:
+                continue
+            # Voicepack is installed, update it
+            archive_file = self._cache.joinpath(remote_voicepack.name)
+            download(remote_voicepack.path, archive_file)
+            self.apply_update_archive(
+                archive_file=archive_file, auto_repair=auto_repair
+            )
         self.set_version_config()

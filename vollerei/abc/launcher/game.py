@@ -83,12 +83,6 @@ class GameABC(ABC):
         """
         pass
 
-    def get_voiceover_update(self, language: str):
-        """
-        Get the voiceover update
-        """
-        pass
-
     def get_channel(self):
         """
         Get the game channel

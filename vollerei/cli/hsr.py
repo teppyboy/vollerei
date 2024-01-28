@@ -339,7 +339,40 @@ class UpdateCommand(Command):
                 f"<error>Couldn't apply update: {e} ({e.__context__})</error>"
             )
             return
-        progress.finish("<comment>Update applied.</comment>")
+        progress.finish("<comment>Update applied for base game.</comment>")
+        # Get installed voicepacks
+        installed_voicepacks = State.game.get_installed_voicepacks()
+        # Voicepack update
+        for remote_voicepack in update_diff.voice_packs:
+            if remote_voicepack.language not in installed_voicepacks:
+                continue
+            # Voicepack is installed, update it
+            archive_file = State.game._cache.joinpath(remote_voicepack.name)
+            try:
+                download_result = utils.download(
+                    update_diff.path, archive_file, file_len=update_diff.size
+                )
+            except Exception as e:
+                self.line_error(f"<error>Couldn't download update: {e}</error>")
+                return
+            if not download_result:
+                self.line_error("<error>Download failed.</error>")
+                return
+            self.line("Download completed.")
+            progress = utils.ProgressIndicator(self)
+            progress.start("Applying update package...")
+            try:
+                State.game.apply_update_archive(
+                    archive_file=archive_file, auto_repair=auto_repair
+                )
+            except Exception as e:
+                progress.finish(
+                    f"<error>Couldn't apply update: {e} ({e.__context__})</error>"
+                )
+                return
+            progress.finish(
+                f"<comment>Update applied for language {remote_voicepack.language}.</comment>"
+            )
         self.line("Setting version config... ")
         self.set_version_config()
         self.line(
