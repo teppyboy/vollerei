@@ -74,9 +74,9 @@ def download(url, out: Path, file_len: int = None, overwrite: bool = False) -> b
         out.touch()
     # Streaming, so we can iterate over the response.
     response = requests.get(url=url, headers=headers, stream=True)
-    response.raise_for_status()
     if response.status_code == 416:
-        return
+        return True
+    response.raise_for_status()
     # Sizes in bytes.
     total_size = int(response.headers.get("content-length", 0))
     block_size = 32768
