@@ -285,14 +285,19 @@ class UpdateCommand(Command):
             "auto-repair", "R", description="Automatically repair the game if needed"
         ),
         option("pre-download", description="Pre-download the game if available"),
+        option("from-version", description="Update from a specific version"),
     ]
 
     def handle(self):
         callback(command=self)
         auto_repair = self.option("auto-repair")
         pre_download = self.option("pre-download")
+        from_version = self.option("from-version")
         if auto_repair:
             self.line("<comment>Auto-repair is enabled.</comment>")
+        if from_version:
+            self.line(f"Updating from version: <comment>{from_version}</comment>")
+            State.game.version_override = from_version
         progress = utils.ProgressIndicator(self)
         progress.start("Checking for updates... ")
         try:
