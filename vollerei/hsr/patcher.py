@@ -1,6 +1,6 @@
 from enum import Enum
 from shutil import copy2, rmtree
-from distutils.version import StrictVersion
+from packaging import version
 from vollerei.abc.patcher import PatcherABC
 from vollerei.common import telemetry
 from vollerei.exceptions.game import GameNotInstalledError
@@ -66,7 +66,7 @@ class Patcher(PatcherABC):
             with open(self._jadeite.joinpath("version"), "r") as f:
                 current_version = f.read()
         if current_version:
-            if StrictVersion(file_version) <= StrictVersion(current_version):
+            if version.parse(file_version) <= version.parse(current_version):
                 return
         download_and_extract(file, self._jadeite)
         with open(self._jadeite.joinpath("version"), "w") as f:
