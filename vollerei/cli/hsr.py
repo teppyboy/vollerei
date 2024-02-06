@@ -83,10 +83,28 @@ class VoicepackListInstalled(Command):
     def handle(self):
         callback(command=self)
         installed_voicepacks_str = [
-            f"<comment>{str(x.name)}</comment>"
+            f"<comment>{x.name}</comment>"
             for x in State.game.get_installed_voicepacks()
         ]
         self.line(f"Installed voicepacks: {", ".join(installed_voicepacks_str)}")
+
+
+class VoicepackList(Command):
+    name = "hsr voicepack list"
+    description = "Get all available voicepacks"
+    options = default_options + [
+        option("pre-download", description="Pre-download the game if available"),
+    ]
+
+    def handle(self):
+        callback(command=self)
+        pre_download = self.option("pre-download")
+        remote_game = State.game.get_remote_game(pre_download=pre_download)
+        available_voicepacks_str = [
+            f"<comment>{x.language.name} ({x.language.value})</comment>"
+            for x in remote_game.latest.voice_packs
+        ]
+        self.line(f"Available voicepacks: {", ".join(available_voicepacks_str)}")
 
 
 class VoicepackUpdateAll(Command):
@@ -189,7 +207,7 @@ class PatchTypeCommand(Command):
 
     def handle(self):
         callback(command=self)
-        self.line(f"<comment>Patch type:</comment> {patcher.patch_type.name}")
+        self.line(f"Patch type: <comment>{patcher.patch_type.name}</comment>")
 
 
 class UpdatePatchCommand(Command):
@@ -545,6 +563,7 @@ commands = [
     PatchTypeCommand,
     UpdatePatchCommand,
     UpdateCommand,
+    VoicepackList,
     VoicepackListInstalled,
     VoicepackUpdateAll,
 ]
