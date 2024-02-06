@@ -188,6 +188,8 @@ class Patcher(PatcherABC):
         Unpatch the game
 
         If you use Jadeite (by default), this will just delete Jadeite files.
+        Note that Honkai Impact 3rd uses Jadeite too, so executing this will
+        delete the files needed by both games.
 
         Args:
             game (Game): The game to unpatch
