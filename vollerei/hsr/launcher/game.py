@@ -300,7 +300,7 @@ class Game(GameABC):
         ):
             if child.is_dir():
                 try:
-                    voicepacks.append(VoicePackLanguage(child.name))
+                    voicepacks.append(VoicePackLanguage[child.name])
                 except ValueError:
                     pass
         return voicepacks
