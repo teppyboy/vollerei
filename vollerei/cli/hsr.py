@@ -374,7 +374,7 @@ class UpdateCommand(Command):
                 f"<comment>Update applied for language {remote_voicepack.language}.</comment>"
             )
         self.line("Setting version config... ")
-        self.set_version_config()
+        State.game.set_version_config()
         self.line(
             f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
         )
