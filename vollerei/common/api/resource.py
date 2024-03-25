@@ -2,7 +2,6 @@
 Class wrapper for API endpoint /resource
 """
 
-
 from vollerei.common.enums import VoicePackLanguage
 
 
@@ -31,9 +30,11 @@ class Segment:
         return Segment(
             data["path"],
             data["md5"],
-            int(data["package_size"])
-            if data["package_size"] and data["package_size"] != "0"
-            else None,
+            (
+                int(data["package_size"])
+                if data["package_size"] and data["package_size"] != "0"
+                else None
+            ),
         )
 
 
@@ -397,9 +398,11 @@ class Resource:
             LauncherPlugin.from_dict(json["plugin"]),
             json["web_url"],
             json["force_update"],
-            Game.from_dict(json["pre_download_game"])
-            if json["pre_download_game"]
-            else None,
+            (
+                Game.from_dict(json["pre_download_game"])
+                if json["pre_download_game"]
+                else None
+            ),
             [DeprecatedPackage.from_dict(x) for x in json["deprecated_packages"]],
             json["sdk"],
             [DeprecatedFile.from_dict(x) for x in json["deprecated_files"]],

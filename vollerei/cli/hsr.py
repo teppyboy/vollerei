@@ -86,7 +86,7 @@ class VoicepackListInstalled(Command):
             f"<comment>{x.name}</comment>"
             for x in State.game.get_installed_voicepacks()
         ]
-        self.line(f"Installed voicepacks: {", ".join(installed_voicepacks_str)}")
+        self.line(f"Installed voicepacks: {', '.join(installed_voicepacks_str)}")
 
 
 class VoicepackList(Command):
@@ -104,7 +104,7 @@ class VoicepackList(Command):
             f"<comment>{x.language.name} ({x.language.value})</comment>"
             for x in remote_game.latest.voice_packs
         ]
-        self.line(f"Available voicepacks: {", ".join(available_voicepacks_str)}")
+        self.line(f"Available voicepacks: {', '.join(available_voicepacks_str)}")
 
 
 class VoicepackUpdateAll(Command):
@@ -135,7 +135,7 @@ class VoicepackUpdateAll(Command):
         installed_voicepacks_str = [
             f"<comment>{str(x.name)}</comment>" for x in installed_voicepacks
         ]
-        self.line(f"Installed voicepacks: {", ".join(installed_voicepacks_str)}")
+        self.line(f"Installed voicepacks: {', '.join(installed_voicepacks_str)}")
         progress = utils.ProgressIndicator(self)
         progress.start("Checking for updates... ")
         try:
@@ -512,6 +512,87 @@ class UpdateCommand(Command):
         )
 
 
+class UpdateDownloadCommand(Command):
+    name = "hsr update download"
+    description = "Download the update for the local game if available"
+    options = default_options + [
+        option(
+            "auto-repair", "R", description="Automatically repair the game if needed"
+        ),
+        option("pre-download", description="Pre-download the game if available"),
+        option(
+            "from-version", description="Update from a specific version", flag=False
+        ),
+    ]
+
+    def handle(self):
+        callback(command=self)
+        auto_repair = self.option("auto-repair")
+        pre_download = self.option("pre-download")
+        from_version = self.option("from-version")
+        if auto_repair:
+            self.line("<comment>Auto-repair is enabled.</comment>")
+        if from_version:
+            self.line(f"Updating from version: <comment>{from_version}</comment>")
+            State.game.version_override = from_version
+        progress = utils.ProgressIndicator(self)
+        progress.start("Checking for updates... ")
+        try:
+            update_diff = State.game.get_update(pre_download=pre_download)
+            game_info = State.game.get_remote_game(pre_download=pre_download)
+        except Exception as e:
+            progress.finish(
+                f"<error>Update checking failed with following error: {e} ({e.__context__})</error>"
+            )
+            return
+        if update_diff is None:
+            progress.finish("<comment>Game is already updated.</comment>")
+            return
+        progress.finish("<comment>Update available.</comment>")
+        self.line(
+            f"The current version is: <comment>{State.game.get_version_str()}</comment>"
+        )
+        self.line(
+            f"The latest version is: <comment>{game_info.latest.version}</comment>"
+        )
+        if not self.confirm("Do you want to download the update?"):
+            self.line("<error>Download aborted.</error>")
+            return
+        self.line("Downloading update package...")
+        out_path = State.game.cache.joinpath(update_diff.name)
+        try:
+            download_result = utils.download(
+                update_diff.path, out_path, file_len=update_diff.size
+            )
+        except Exception as e:
+            self.line_error(f"<error>Couldn't download update: {e}</error>")
+            return
+
+        if not download_result:
+            self.line_error("<error>Download failed.</error>")
+            return
+        self.line("Download completed.")
+        # Get installed voicepacks
+        installed_voicepacks = State.game.get_installed_voicepacks()
+        # Voicepack update
+        for remote_voicepack in update_diff.voice_packs:
+            if remote_voicepack.language not in installed_voicepacks:
+                continue
+            # Voicepack is installed, update it
+            archive_file = State.game.cache.joinpath(remote_voicepack.name)
+            try:
+                download_result = utils.download(
+                    update_diff.path, archive_file, file_len=update_diff.size
+                )
+            except Exception as e:
+                self.line_error(f"<error>Couldn't download update: {e}</error>")
+                return
+            if not download_result:
+                self.line_error("<error>Download failed.</error>")
+                return
+            self.line("Download completed.")
+
+
 class ApplyUpdateArchive(Command):
     name = "hsr update apply-archive"
     description = "Applies the update archive to the local game"
@@ -563,6 +644,7 @@ commands = [
     PatchTypeCommand,
     UpdatePatchCommand,
     UpdateCommand,
+    UpdateDownloadCommand,
     VoicepackList,
     VoicepackListInstalled,
     VoicepackUpdateAll,
