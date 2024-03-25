@@ -482,7 +482,7 @@ class UpdateCommand(Command):
             archive_file = State.game.cache.joinpath(remote_voicepack.name)
             try:
                 download_result = utils.download(
-                    update_diff.path, archive_file, file_len=update_diff.size
+                    remote_voicepack.path, archive_file, file_len=update_diff.size
                 )
             except Exception as e:
                 self.line_error(f"<error>Couldn't download update: {e}</error>")
@@ -582,7 +582,7 @@ class UpdateDownloadCommand(Command):
             archive_file = State.game.cache.joinpath(remote_voicepack.name)
             try:
                 download_result = utils.download(
-                    update_diff.path, archive_file, file_len=update_diff.size
+                    remote_voicepack.path, archive_file, file_len=update_diff.size
                 )
             except Exception as e:
                 self.line_error(f"<error>Couldn't download update: {e}</error>")
