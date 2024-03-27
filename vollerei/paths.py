@@ -20,7 +20,7 @@ class Paths:
     def set_base_path(path: PathLike):
         path = Path(path)
         Paths.base_paths = path
-        Paths.cache_path = Paths.base_paths.joinpath("Cache")
+        Paths.cache_path = Paths.base_paths.joinpath("cache")
         Paths.data_path = Paths.base_paths
         Paths.tools_data_path = Paths.data_path.joinpath("tools")
         Paths.tools_cache_path = Paths.cache_path.joinpath("tools")

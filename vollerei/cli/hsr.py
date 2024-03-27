@@ -8,6 +8,7 @@ from vollerei.exceptions.game import GameError
 from vollerei.hsr import Game, Patcher
 from vollerei.exceptions.patcher import PatcherError, PatchUpdateError
 from vollerei.hsr.patcher import PatchType
+from vollerei import paths
 
 patcher = Patcher()
 
@@ -49,6 +50,8 @@ def callback(
         channel = GameChannel[channel.capitalize()]
     elif isinstance(channel, int):
         channel = GameChannel(channel)
+    if temporary_path:
+        paths.set_base_path(temporary_path)
     State.game: Game = Game(game_path, temporary_path)
     if channel:
         State.game.channel_override = channel

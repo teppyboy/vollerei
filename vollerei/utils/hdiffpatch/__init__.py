@@ -26,21 +26,32 @@ class HDiffPatch:
 
     @staticmethod
     def _get_platform_arch():
+        processor = platform.machine()
         match platform.system():
             case "Windows":
-                match platform.architecture()[0]:
-                    case "32bit":
+                match processor:
+                    case "i386":
                         return "windows32"
-                    case "64bit":
+                    case "x86_64":
                         return "windows64"
+                    case "arm":
+                        return "windows_arm32"
+                    case "arm64":
+                        return "windows_arm64"
             case "Linux":
-                match platform.architecture()[0]:
-                    case "32bit":
+                match processor:
+                    case "i386":
                         return "linux32"
-                    case "64bit":
+                    case "x86_64":
                         return "linux64"
+                    case "arm":
+                        return "linux_arm32"
+                    case "arm64":
+                        return "linux_arm64"
             case "Darwin":
                 return "macos"
+
+        # TODO: Add support for Android & other architectures
 
         # Rip BSD they need to use Linux compatibility layer to run this
         # (or use Wine if they prefer that)
@@ -88,16 +99,11 @@ class HDiffPatch:
             params={"Headers": "Accept: application/vnd.github.v3+json"},
         )
         rsp.raise_for_status()
+        archive_processor = self._get_platform_arch()
         for asset in rsp.json()["assets"]:
             if not asset["name"].endswith(".zip"):
                 continue
-            if "linux" in asset["name"]:
-                continue
-            if "windows" in asset["name"]:
-                continue
-            if "macos" in asset["name"]:
-                continue
-            if "android" in asset["name"]:
+            if archive_processor not in asset["name"]:
                 continue
             return asset
 
