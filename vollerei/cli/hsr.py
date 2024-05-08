@@ -52,7 +52,7 @@ def callback(
         channel = GameChannel(channel)
     if temporary_path:
         paths.set_base_path(temporary_path)
-    State.game: Game = Game(game_path, temporary_path)
+    State.game = Game(game_path, temporary_path)
     if channel:
         State.game.channel_override = channel
     if patch_type is None:

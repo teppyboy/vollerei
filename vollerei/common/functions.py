@@ -18,7 +18,8 @@ def apply_update_archive(
     voicepack update.
 
     Because this function is shared for all games, you should use the game's
-    `apply_update_archive()` method instead.
+    `apply_update_archive()` method instead, which additionally applies required
+    methods for that game.
     """
     # Most code here are copied from worthless-launcher.
     # worthless-launcher uses asyncio for multithreading while this one uses
