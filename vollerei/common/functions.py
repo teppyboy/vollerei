@@ -1,9 +1,11 @@
 import concurrent.futures
 from io import IOBase
 import json
+import hashlib
 from pathlib import Path
 import zipfile
 from vollerei.abc.launcher.game import GameABC
+from vollerei.exceptions.game import RepairError
 from vollerei.utils import HDiffPatch, HPatchZPatchError
 
 
@@ -133,3 +135,64 @@ def apply_update_archive(
 
     # Close the archive
     archive.close()
+
+
+def repair_game(
+    game: GameABC,
+    pre_download: bool = False,
+) -> None:
+    """
+    Tries to repair the game by reading "pkg_version" file and downloading the
+    mismatched files from the server.
+
+    Because this function is shared for all games, you should use the game's
+    `repair_game()` method instead, which additionally applies required
+    methods for that game.
+    """
+    # Most code here are copied from worthless-launcher.
+    # worthless-launcher uses asyncio for multithreading while this one uses
+    # ThreadPoolExecutor, probably better for this use case.
+    game_info = game.get_remote_game(pre_download=pre_download)
+    pkg_version_file = game.path.joinpath("pkg_version")
+    pkg_version = []
+    if not pkg_version_file.is_file():
+        try:
+            game.repair_file("pkg_version", game_info=game_info)
+        except Exception as e:
+            raise RepairError(
+                "pkg_version file not found, most likely you need to download the full game again."
+            ) from e
+    else:
+        with pkg_version_file.open("r") as f:
+            for line in f.readlines():
+                line = line.strip()
+                if not line:
+                    continue
+                pkg_version.append(json.loads(line))
+    repair_executor = concurrent.futures.ThreadPoolExecutor()
+    for file in pkg_version:
+
+        def repair(target_file, game_info):
+            try:
+                game.repair_file(target_file, game_info=game_info)
+            except Exception as e:
+                print(f"Failed to repair {target_file['remoteName']}: {e}")
+
+        def verify_and_repair(target_file, game_info):
+            file_path = game.path.joinpath(target_file["remoteName"])
+            if not file_path.is_file():
+                print(f"File {target_file['remoteName']} not found, repairing...")
+                repair(file_path, game_info)
+                return
+            with file_path.open("rb", buffering=0) as f:
+                file_hash = hashlib.file_digest(f, "md5").hexdigest()
+            if file_hash != target_file["md5"]:
+                print(
+                    f"Hash mismatch for {target_file['remoteName']} ({file_hash}; expected {target_file['md5']})"
+                )
+                repair(file_path, game_info)
+
+        # Single-threaded for now
+        # verify_and_repair(file, game_info)
+        repair_executor.submit(verify_and_repair, file, game_info)
+    repair_executor.shutdown(wait=True)

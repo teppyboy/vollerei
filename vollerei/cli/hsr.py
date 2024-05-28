@@ -515,6 +515,36 @@ class UpdateCommand(Command):
         )
 
 
+class RepairCommand(Command):
+    name = "hsr repair"
+    description = "Tries to repair the local game"
+    options = default_options
+
+    def handle(self):
+        callback(command=self)
+        self.line(
+            "This command will try to repair the game by downloading missing/broken files."
+        )
+        self.line(
+            "There will be no progress available, so please be patient and just wait."
+        )
+        if not self.confirm(
+            "Do you want to repair the game (this will take a long time!)?"
+        ):
+            self.line("<error>Repairation aborted.</error>")
+            return
+        progress = utils.ProgressIndicator(self)
+        progress.start("Repairing game files (no progress available)... ")
+        try:
+            State.game.repair_game()
+        except Exception as e:
+            progress.finish(
+                f"<error>Repairation failed with following error: {e} ({e.__context__})</error>"
+            )
+            return
+        progress.finish("<comment>Repairation completed.</comment>")
+
+
 class UpdateDownloadCommand(Command):
     name = "hsr update download"
     description = "Download the update for the local game if available"
@@ -645,6 +675,7 @@ commands = [
     PatchInstallCommand,
     PatchTelemetryCommand,
     PatchTypeCommand,
+    RepairCommand,
     UpdatePatchCommand,
     UpdateCommand,
     UpdateDownloadCommand,

@@ -3,6 +3,7 @@ from hashlib import md5
 from io import IOBase
 from os import PathLike
 from pathlib import Path
+from shutil import move, copyfile
 from vollerei.abc.launcher.game import GameABC
 from vollerei.common import ConfigFile, functions
 from vollerei.common.api import resource
@@ -348,7 +349,12 @@ class Game(GameABC):
                 return diff
         return None
 
-    def repair_file(self, file: PathLike, pre_download: bool = False) -> None:
+    def repair_file(
+        self,
+        file: PathLike,
+        pre_download: bool = False,
+        game_info: resource.Game = None,
+    ) -> None:
         """
         Repairs a game file.
 
@@ -365,22 +371,51 @@ class Game(GameABC):
         file = Path(file)
         if not file.is_relative_to(self._path):
             raise ValueError("File is not in the game folder.")
-        game = self.get_remote_game(pre_download=pre_download)
+        if not game_info:
+            game = self.get_remote_game(pre_download=pre_download)
+        else:
+            game = game_info
         if game.latest.decompressed_path is None:
             raise ScatteredFilesNotAvailableError("Scattered files are not available.")
-        url = game.latest.decompressed_path + "/" + file.relative_to(self._path)
+        # .replace("\\", "/") is needed because Windows uses backslashes :)
+        relative_file = file.relative_to(self._path)
+        url = (
+            game.latest.decompressed_path + "/" + str(relative_file).replace("\\", "/")
+        )
         # Backup the file
-        file.rename(file.with_suffix(file.suffix + ".bak"))
+        if file.exists():
+            file.rename(file.with_suffix(file.suffix + ".bak"))
+            dest_file = file.with_suffix("")
+        else:
+            dest_file = file
         try:
             # Download the file
-            download(url, file.with_suffix(""))
-        except Exception:
+            temp_file = self.cache.joinpath(relative_file)
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            print(f"Downloading repair file {url} to {temp_file}")
+            download(url, temp_file, overwrite=True, stream=True)
+            # Move the file
+            copyfile(temp_file, dest_file)
+            print("OK")
+        except Exception as e:
             # Restore the backup
-            file.rename(file.with_suffix(""))
-            raise
+            print("Failed", e)
+            if file.exists():
+                file.rename(file.with_suffix(""))
+            raise e
         else:
             # Delete the backup
-            file.unlink(missing_ok=True)
+            if file.exists():
+                file.unlink(missing_ok=True)
+
+    def repair_game(self) -> None:
+        """
+        Tries to repair the game by reading "pkg_version" file and downloading the
+        mismatched files from the server.
+        """
+        if not self.is_installed():
+            raise GameNotInstalledError("Game is not installed.")
+        functions.repair_game(self)
 
     def apply_update_archive(
         self, archive_file: PathLike | IOBase, auto_repair: bool = True

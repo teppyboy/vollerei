@@ -25,7 +25,13 @@ class GameAlreadyInstalledError(GameError):
     pass
 
 
-class ScatteredFilesNotAvailableError(GameError):
+class RepairError(GameError):
+    """Error occurred while repairing the game."""
+
+    pass
+
+
+class ScatteredFilesNotAvailableError(RepairError):
     """Scattered files are not available."""
 
     pass

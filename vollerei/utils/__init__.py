@@ -1,5 +1,6 @@
 import requests
 import platform
+import shutil
 from zipfile import ZipFile
 from io import BytesIO
 from pathlib import Path
@@ -53,7 +54,11 @@ __all__ = [
 
 
 def download(
-    url: str, out: Path, file_len: int = None, overwrite: bool = False
+    url: str,
+    out: Path,
+    file_len: int = None,
+    overwrite: bool = False,
+    stream: bool = True,
 ) -> None:
     """
     Download to a path.
@@ -65,22 +70,22 @@ def download(
     if overwrite:
         out.unlink(missing_ok=True)
     headers = {}
+    mode = "a+b"
     if out.exists():
         cur_len = (out.stat()).st_size
         headers |= {"Range": f"bytes={cur_len}-{file_len if file_len else ''}"}
     else:
+        mode = "w+b"
+        out.parent.mkdir(parents=True, exist_ok=True)
         out.touch()
     # Streaming, so we can iterate over the response.
-    response = requests.get(url=url, headers=headers, stream=True)
-    response.raise_for_status()
-    if response.status == 416:
+    response = requests.get(url=url, headers=headers, stream=stream)
+    if response.status_code == 416:
+        print(f"File already downloaded: {out}")
         return
-    # Sizes in bytes.
-    block_size = 32768
-
-    with out.open("ab") as file:
-        for data in response.iter_content(block_size):
-            file.write(data)
+    response.raise_for_status()
+    with open(out, mode) as file:
+        shutil.copyfileobj(response.raw, file)
     return True
 
 

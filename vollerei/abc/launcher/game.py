@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from os import PathLike
 from pathlib import Path
 from typing import Any
+from vollerei.common.api import resource
 
 
 class GameABC(ABC):
@@ -70,6 +71,22 @@ class GameABC(ABC):
         """
         pass
 
+    def repair_file(
+        self, file: PathLike, pre_download: bool = False, game_info=None
+    ) -> None:
+        """
+        Repairs a game file.
+
+        This will automatically handle backup and restore the file if the repair
+        fails.
+
+        Args:
+            file (PathLike): The file to repair.
+            pre_download (bool): Whether to get the pre-download version.
+                Defaults to False.
+        """
+        pass
+
     def get_version(self) -> tuple[int, int, int]:
         """
         Get the game version
@@ -87,5 +104,18 @@ class GameABC(ABC):
     def get_channel(self):
         """
         Get the game channel
+        """
+        pass
+
+    def get_remote_game(self, pre_download: bool = False) -> resource.Game:
+        """
+        Gets the current game information from remote.
+
+        Args:
+            pre_download (bool): Whether to get the pre-download version.
+                Defaults to False.
+
+        Returns:
+            A `Game` object that contains the game information.
         """
         pass
