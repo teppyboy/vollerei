@@ -157,7 +157,7 @@ def repair_game(
     pkg_version = []
     if not pkg_version_file.is_file():
         try:
-            game.repair_file("pkg_version", game_info=game_info)
+            game.repair_file(game.path.joinpath("pkg_version"), game_info=game_info)
         except Exception as e:
             raise RepairError(
                 "pkg_version file not found, most likely you need to download the full game again."
