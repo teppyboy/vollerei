@@ -157,18 +157,17 @@ def repair_game(
     pkg_version = []
     if not pkg_version_file.is_file():
         try:
-            game.repair_file("pkg_version", game_info=game_info)
+            game.repair_file(game.path.joinpath("pkg_version"), game_info=game_info)
         except Exception as e:
             raise RepairError(
                 "pkg_version file not found, most likely you need to download the full game again."
             ) from e
-    else:
-        with pkg_version_file.open("r") as f:
-            for line in f.readlines():
-                line = line.strip()
-                if not line:
-                    continue
-                pkg_version.append(json.loads(line))
+    with pkg_version_file.open("r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            if not line:
+                continue
+            pkg_version.append(json.loads(line))
     repair_executor = concurrent.futures.ThreadPoolExecutor()
     for file in pkg_version:
 
