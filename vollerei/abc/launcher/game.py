@@ -87,6 +87,28 @@ class GameABC(ABC):
         """
         pass
 
+    def repair_files(
+        self,
+        files: list[PathLike],
+        pre_download: bool = False,
+        game_info: resource.Game = None,
+    ) -> None:
+        """
+        Repairs multiple game files.
+
+        This will automatically handle backup and restore the file if the repair
+        fails.
+
+        This method is not multi-threaded, so it may take a while to repair
+        multiple files.
+
+        Args:
+            file (PathLike): The file to repair.
+            pre_download (bool): Whether to get the pre-download version.
+                Defaults to False.
+        """
+        pass
+
     def get_version(self) -> tuple[int, int, int]:
         """
         Get the game version

@@ -154,7 +154,7 @@ def repair_game(
     # ThreadPoolExecutor, probably better for this use case.
     game_info = game.get_remote_game(pre_download=pre_download)
     pkg_version_file = game.path.joinpath("pkg_version")
-    pkg_version = []
+    pkg_version: dict[str, dict[str, str]] = {}
     if not pkg_version_file.is_file():
         try:
             game.repair_file(game.path.joinpath("pkg_version"), game_info=game_info)
@@ -167,31 +167,61 @@ def repair_game(
             line = line.strip()
             if not line:
                 continue
-            pkg_version.append(json.loads(line))
+            line_json = json.loads(line)
+            pkg_version[line_json["remoteName"]] = {
+                "md5": line_json["md5"],
+                "fileSize": line_json["fileSize"],
+            }
+    read_needed_files: list[Path] = []
+    target_files: list[Path] = []
     repair_executor = concurrent.futures.ThreadPoolExecutor()
-    for file in pkg_version:
+    for file in game.path.rglob("*"):
+        # Ignore webCaches folder (because it's user data)
+        if file.is_dir():
+            continue
+        if "webCaches" in str(file):
+            continue
 
-        def repair(target_file, game_info):
+        def verify(file_path: Path):
+            nonlocal target_files
+            nonlocal pkg_version
+            relative_path = file_path.relative_to(game.path)
+            relative_path_str = str(relative_path).replace("\\", "/")
+            # print(relative_path_str)
+            # Wtf mihoyo, you build this game for Windows and then use Unix path separator :moyai:
             try:
-                game.repair_file(target_file, game_info=game_info)
-            except Exception as e:
-                print(f"Failed to repair {target_file['remoteName']}: {e}")
+                target_file = pkg_version.pop(relative_path_str)
+                if target_file:
+                    with file_path.open("rb", buffering=0) as f:
+                        file_hash = hashlib.file_digest(f, "md5").hexdigest()
+                    if file_hash == target_file["md5"]:
+                        return
+                    print(
+                        f"Hash mismatch for {target_file['remoteName']} ({file_hash}; expected {target_file['md5']})"
+                    )
+                    target_files.append(file_path)
+            except KeyError:
+                # File not found in pkg_version
+                read_needed_files.append(file_path)
 
-        def verify_and_repair(target_file, game_info):
-            file_path = game.path.joinpath(target_file["remoteName"])
-            if not file_path.is_file():
-                print(f"File {target_file['remoteName']} not found, repairing...")
-                repair(file_path, game_info)
-                return
-            with file_path.open("rb", buffering=0) as f:
-                file_hash = hashlib.file_digest(f, "md5").hexdigest()
-            if file_hash != target_file["md5"]:
-                print(
-                    f"Hash mismatch for {target_file['remoteName']} ({file_hash}; expected {target_file['md5']})"
-                )
-                repair(file_path, game_info)
-
-        # Single-threaded for now
-        # verify_and_repair(file, game_info)
-        repair_executor.submit(verify_and_repair, file, game_info)
+        repair_executor.submit(verify, file)
     repair_executor.shutdown(wait=True)
+    for file in read_needed_files:
+        try:
+            with file.open("rb", buffering=0) as f:
+                # We only need to read 4 bytes to see if the file is readable or not
+                f.read(4)
+        except Exception:
+            print(f"File {file=} is corrupted.")
+            target_files.append(file)
+    # value not used for now
+    for key, _ in pkg_version.items():
+        target_file = game.path.joinpath(key)
+        if target_file.is_file():
+            continue
+        print(f"{key} not found.")
+        target_files.append(target_file)
+    if not target_files:
+        return
+    print("Begin repairing files...")
+    game.repair_files(target_files, game_info=game_info)

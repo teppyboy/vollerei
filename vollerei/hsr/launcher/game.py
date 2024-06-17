@@ -1,3 +1,4 @@
+import concurrent.futures
 from configparser import ConfigParser
 from hashlib import md5
 from io import IOBase
@@ -349,6 +350,40 @@ class Game(GameABC):
                 return diff
         return None
 
+    def _repair_file(self, file: PathLike, game: resource.Game) -> None:
+        # .replace("\\", "/") is needed because Windows uses backslashes :)
+        relative_file = file.relative_to(self._path)
+        url = (
+            game.latest.decompressed_path + "/" + str(relative_file).replace("\\", "/")
+        )
+        # Backup the file
+        if file.exists():
+            backup_file = file.with_suffix(file.suffix + ".bak")
+            if backup_file.exists():
+                backup_file.unlink()
+            file.rename(backup_file)
+            dest_file = file.with_suffix("")
+        else:
+            dest_file = file
+        try:
+            # Download the file
+            temp_file = self.cache.joinpath(relative_file)
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            print(f"Downloading repair file {url} to {temp_file}")
+            download(url, temp_file, overwrite=True, stream=True)
+            # Move the file
+            copyfile(temp_file, dest_file)
+            print("OK")
+        except Exception as e:
+            # Restore the backup
+            print("Failed", e)
+            if file.exists():
+                file.rename(file.with_suffix(""))
+            raise e
+        # Delete the backup
+        if file.exists():
+            file.unlink(missing_ok=True)
+
     def repair_file(
         self,
         file: PathLike,
@@ -377,36 +412,42 @@ class Game(GameABC):
             game = game_info
         if game.latest.decompressed_path is None:
             raise ScatteredFilesNotAvailableError("Scattered files are not available.")
-        # .replace("\\", "/") is needed because Windows uses backslashes :)
-        relative_file = file.relative_to(self._path)
-        url = (
-            game.latest.decompressed_path + "/" + str(relative_file).replace("\\", "/")
-        )
-        # Backup the file
-        if file.exists():
-            file.rename(file.with_suffix(file.suffix + ".bak"))
-            dest_file = file.with_suffix("")
+        self._repair_file(file, game=game)
+
+    def repair_files(
+        self,
+        files: list[PathLike],
+        pre_download: bool = False,
+        game_info: resource.Game = None,
+    ) -> None:
+        """
+        Repairs multiple game files.
+
+        This will automatically handle backup and restore the file if the repair
+        fails.
+
+        Args:
+            file (PathLike): The file to repair.
+            pre_download (bool): Whether to get the pre-download version.
+                Defaults to False.
+        """
+        if not self.is_installed():
+            raise GameNotInstalledError("Game is not installed.")
+        files_path = [Path(file) for file in files]
+        for file in files_path:
+            if not file.is_relative_to(self._path):
+                raise ValueError("File is not in the game folder.")
+        if not game_info:
+            game = self.get_remote_game(pre_download=pre_download)
         else:
-            dest_file = file
-        try:
-            # Download the file
-            temp_file = self.cache.joinpath(relative_file)
-            dest_file.parent.mkdir(parents=True, exist_ok=True)
-            print(f"Downloading repair file {url} to {temp_file}")
-            download(url, temp_file, overwrite=True, stream=True)
-            # Move the file
-            copyfile(temp_file, dest_file)
-            print("OK")
-        except Exception as e:
-            # Restore the backup
-            print("Failed", e)
-            if file.exists():
-                file.rename(file.with_suffix(""))
-            raise e
-        else:
-            # Delete the backup
-            if file.exists():
-                file.unlink(missing_ok=True)
+            game = game_info
+        if game.latest.decompressed_path is None:
+            raise ScatteredFilesNotAvailableError("Scattered files are not available.")
+        executor = concurrent.futures.ThreadPoolExecutor()
+        for file in files_path:
+            executor.submit(self._repair_file, file, game=game)
+            # self._repair_file(file, game=game)
+        executor.shutdown(wait=True)
 
     def repair_game(self) -> None:
         """
