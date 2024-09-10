@@ -1,6 +1,11 @@
 from enum import Enum
 
 
+class GameChannel(Enum):
+    Overseas = 0
+    China = 1
+
+
 class VoicePackLanguage(Enum):
     Japanese = "ja-jp"
     Chinese = "zh-cn"

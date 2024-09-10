@@ -34,6 +34,8 @@ class HDiffPatch:
                         return "windows32"
                     case "x86_64":
                         return "windows64"
+                    case "AMD64":
+                        return "windows64"
                     case "arm":
                         return "windows_arm32"
                     case "arm64":

@@ -3,12 +3,12 @@ from configparser import ConfigParser
 from hashlib import md5
 from io import IOBase
 from os import PathLike
-from pathlib import Path
+from pathlib import Path, PurePath
 from shutil import move, copyfile
 from vollerei.abc.launcher.game import GameABC
 from vollerei.common import ConfigFile, functions
 from vollerei.common.api import resource
-from vollerei.common.enums import VoicePackLanguage
+from vollerei.common.enums import VoicePackLanguage, GameChannel
 from vollerei.exceptions.game import (
     GameAlreadyUpdatedError,
     GameNotInstalledError,
@@ -16,7 +16,6 @@ from vollerei.exceptions.game import (
     ScatteredFilesNotAvailableError,
 )
 from vollerei.hsr.constants import MD5SUMS
-from vollerei.hsr.launcher.enums import GameChannel
 from vollerei.hsr.launcher import api
 from vollerei import paths
 from vollerei.utils import download
@@ -189,7 +188,7 @@ class Game(GameABC):
         cfg_file = self._path.joinpath("config.ini")
         if cfg_file.exists():
             cfg = ConfigFile(cfg_file)
-            cfg.set("General", "game_version", self.get_version_str())
+            cfg.set("general", "game_version", self.get_version_str())
             cfg.save()
         else:
             cfg = ConfigParser()
@@ -307,7 +306,7 @@ class Game(GameABC):
                     pass
         return voicepacks
 
-    def get_remote_game(self, pre_download: bool = False) -> resource.Game:
+    def get_remote_game(self, pre_download: bool = False) -> resource.Main | resource.PreDownload:
         """
         Gets the current game information from remote.
 
@@ -316,17 +315,17 @@ class Game(GameABC):
                 Defaults to False.
 
         Returns:
-            A `Game` object that contains the game information.
+            A `Main` or `PreDownload` object that contains the game information.
         """
         channel = self._channel_override or self.get_channel()
         if pre_download:
-            game = api.get_resource(channel=channel).pre_download_game
+            game = api.get_game_package(channel=channel).pre_download
             if not game:
                 raise PreDownloadNotAvailable("Pre-download version is not available.")
             return game
-        return api.get_resource(channel=channel).game
+        return api.get_game_package(channel=channel).main
 
-    def get_update(self, pre_download: bool = False) -> resource.Diff | None:
+    def get_update(self, pre_download: bool = False) -> resource.Patch | None:
         """
         Gets the current game update.
 
@@ -335,7 +334,7 @@ class Game(GameABC):
                 Defaults to False.
 
         Returns:
-            A `Diff` object that contains the update information or
+            A `Patch` object that contains the update information or
             `None` if the game is not installed or already up-to-date.
         """
         if not self.is_installed():
@@ -345,9 +344,9 @@ class Game(GameABC):
             if self._version_override
             else self.get_version_str()
         )
-        for diff in self.get_remote_game(pre_download=pre_download).diffs:
-            if diff.version == version:
-                return diff
+        for patch in self.get_remote_game(pre_download=pre_download).patches:
+            if patch.version == version:
+                return patch
         return None
 
     def _repair_file(self, file: PathLike, game: resource.Game) -> None:
@@ -486,10 +485,10 @@ class Game(GameABC):
         functions.apply_update_archive(self, archive_file, auto_repair=auto_repair)
 
     def install_update(
-        self, update_info: resource.Diff = None, auto_repair: bool = True
+        self, update_info: resource.Patch = None, auto_repair: bool = True
     ):
         """
-        Installs an update from a `Diff` object.
+        Installs an update from a `Patch` object.
 
         You may want to download the update manually and pass it to
         `apply_update_archive()` instead for better control, and after that
@@ -506,19 +505,20 @@ class Game(GameABC):
             update_info = self.get_update()
         if not update_info or update_info.version == self.get_version_str():
             raise GameAlreadyUpdatedError("Game is already updated.")
+        update_url = update_info.game_pkgs[0].url
         # Base game update
-        archive_file = self.cache.joinpath(update_info.name)
-        download(update_info.path, archive_file)
+        archive_file = self.cache.joinpath(PurePath(update_url).name)
+        download(update_url, archive_file)
         self.apply_update_archive(archive_file=archive_file, auto_repair=auto_repair)
         # Get installed voicepacks
         installed_voicepacks = self.get_installed_voicepacks()
         # Voicepack update
-        for remote_voicepack in update_info.voice_packs:
+        for remote_voicepack in update_info.audio_pkgs:
             if remote_voicepack.language not in installed_voicepacks:
                 continue
             # Voicepack is installed, update it
-            archive_file = self.cache.joinpath(remote_voicepack.name)
-            download(remote_voicepack.path, archive_file)
+            archive_file = self.cache.joinpath(PurePath(remote_voicepack.url).name)
+            download(remote_voicepack.url, archive_file)
             self.apply_update_archive(
                 archive_file=archive_file, auto_repair=auto_repair
             )
