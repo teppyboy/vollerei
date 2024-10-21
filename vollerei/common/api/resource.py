@@ -1,4 +1,5 @@
 from vollerei.common.enums import VoicePackLanguage
+from typing import Union
 
 
 class Game:
@@ -99,8 +100,19 @@ class PreDownload:
         self.major = major
         self.patches = patches
 
+    # Union to fix the typing issue.
     @staticmethod
-    def from_dict(data: dict) -> "PreDownload":
+    def from_dict(data: dict | None) -> Union["PreDownload", None]:
+        # pre_download can be null in the server for certain games
+        # e.g. HI3: 
+        # "pre_download": null
+        # while in GI it is the following:
+        # "pre_download": {
+        #   "major": null,
+        #   "patches": []
+        # }
+        if data is None:
+            return None
         return PreDownload(
             major=(
                 data["major"]
