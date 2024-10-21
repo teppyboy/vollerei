@@ -349,11 +349,11 @@ class Game(GameABC):
                 return patch
         return None
 
-    def _repair_file(self, file: PathLike, game: resource.Game) -> None:
+    def _repair_file(self, file: PathLike, game: resource.Main) -> None:
         # .replace("\\", "/") is needed because Windows uses backslashes :)
         relative_file = file.relative_to(self._path)
         url = (
-            game.latest.decompressed_path + "/" + str(relative_file).replace("\\", "/")
+            game.major.res_list_url + "/" + str(relative_file).replace("\\", "/")
         )
         # Backup the file
         if file.exists():
@@ -409,7 +409,7 @@ class Game(GameABC):
             game = self.get_remote_game(pre_download=pre_download)
         else:
             game = game_info
-        if game.latest.decompressed_path is None:
+        if isinstance(game.major, str | None) or game.major.res_list_url in [None, ""]:
             raise ScatteredFilesNotAvailableError("Scattered files are not available.")
         self._repair_file(file, game=game)
 
