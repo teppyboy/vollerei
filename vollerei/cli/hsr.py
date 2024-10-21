@@ -148,7 +148,7 @@ class VoicepackUpdateAll(Command):
             game_info = State.game.get_remote_game(pre_download=pre_download)
         except Exception as e:
             progress.finish(
-                f"<error>Update checking failed with following error: {e} ({e.__context__})</error>"
+                f"<error>Update checking failed with following error: {e} \n({traceback.format_exc()})</error>"
             )
             return
         if update_diff is None:
@@ -192,7 +192,7 @@ class VoicepackUpdateAll(Command):
                 )
             except Exception as e:
                 progress.finish(
-                    f"<error>Couldn't apply update: {e} ({e.__context__})</error>"
+                    f"<error>Couldn't apply update: {e} \n({traceback.format_exc()})</error>"
                 )
                 return
             progress.finish(
@@ -228,7 +228,7 @@ class UpdatePatchCommand(Command):
             patcher.update_patch()
         except PatchUpdateError as e:
             progress.finish(
-                f"<error>Patch update failed with following error: {e} ({e.__context__})</error>"
+                f"<error>Patch update failed with following error: {e} \n({traceback.format_exc()})</error>"
             )
         else:
             progress.finish("<comment>Patch updated!</comment>")
@@ -246,7 +246,7 @@ class PatchInstallCommand(Command):
             jadeite_dir = patcher.patch_game(game=State.game)
         except PatcherError as e:
             progress.finish(
-                f"<error>Patch installation failed with following error: {e} ({e.__context__})</error>"
+                f"<error>Patch installation failed with following error: {e} \n({traceback.format_exc()})</error>"
             )
             return
         progress.finish("<comment>Patch installed!</comment>")
@@ -279,7 +279,7 @@ class PatchInstallCommand(Command):
             patcher.patch_game(game=State.game)
         except PatcherError as e:
             progress.finish(
-                f"<error>Patch installation failed with following error: {e} ({e.__context__})</error>"
+                f"<error>Patch installation failed with following error: {e} \n({traceback.format_exc()})</error>"
             )
             return
         progress.finish("<comment>Patch installed!</comment>")
@@ -327,7 +327,7 @@ class PatchInstallCommand(Command):
                 patcher.block_telemetry(telemetry_list=telemetry_list)
             except Exception as e:
                 self.line_error(
-                    f"<error>Couldn't block telemetry hosts: {e.__context__}</error>"
+                    f"<error>Couldn't block telemetry hosts: {traceback.format_exc()}</error>"
                 )
                 # There's a good reason for this.
                 if system() != "Windows":
@@ -344,7 +344,7 @@ class PatchInstallCommand(Command):
             patcher.update_patch()
         except PatchUpdateError as e:
             progress.finish(
-                f"<error>Patch update failed with following error: {e} ({e.__context__})</error>"
+                f"<error>Patch update failed with following error: {e} \n({traceback.format_exc()})</error>"
             )
         else:
             progress.finish("<comment>Patch updated.</comment>")
@@ -386,7 +386,7 @@ class PatchTelemetryCommand(Command):
                 patcher.block_telemetry(telemetry_list=telemetry_list)
             except Exception as e:
                 self.line_error(
-                    f"<error>Couldn't block telemetry hosts: {e.__context__}</error>"
+                    f"<error>Couldn't block telemetry hosts: {traceback.format_exc()}</error>"
                 )
         else:
             progress.finish("<comment>No telemetry hosts found.</comment>")
@@ -436,9 +436,8 @@ class UpdateCommand(Command):
             update_diff = State.game.get_update(pre_download=pre_download)
             game_info = State.game.get_remote_game(pre_download=pre_download)
         except Exception as e:
-            print(traceback.format_exc())
             progress.finish(
-                f"<error>Update checking failed with following error: {e} ({e.__context__})</error>"
+                f"<error>Update checking failed with following error: {e} \n({traceback.format_exc()})</error>"
             )
             return
         if update_diff is None or isinstance(game_info.major, str | None):
@@ -475,7 +474,7 @@ class UpdateCommand(Command):
             State.game.apply_update_archive(out_path, auto_repair=auto_repair)
         except Exception as e:
             progress.finish(
-                f"<error>Couldn't apply update: {e} ({e.__context__})</error>"
+                f"<error>Couldn't apply update: {e} \n({traceback.format_exc()})</error>"
             )
             return
         progress.finish("<comment>Update applied for base game.</comment>")
@@ -506,7 +505,7 @@ class UpdateCommand(Command):
                 )
             except Exception as e:
                 progress.finish(
-                    f"<error>Couldn't apply update: {e} ({e.__context__})</error>"
+                    f"<error>Couldn't apply update: {e} \n({traceback.format_exc()})</error>"
                 )
                 return
             progress.finish(
@@ -543,7 +542,7 @@ class RepairCommand(Command):
             State.game.repair_game()
         except Exception as e:
             progress.finish(
-                f"<error>Repairation failed with following error: {e} ({e.__context__})</error>"
+                f"<error>Repairation failed with following error: {e} \n({traceback.format_exc()})</error>"
             )
             return
         progress.finish("<comment>Repairation completed.</comment>")
@@ -579,10 +578,10 @@ class UpdateDownloadCommand(Command):
             game_info = State.game.get_remote_game(pre_download=pre_download)
         except Exception as e:
             progress.finish(
-                f"<error>Update checking failed with following error: {e} ({e.__context__})</error>"
+                f"<error>Update checking failed with following error: {e} \n({traceback.format_exc()})</error>"
             )
             return
-        if update_diff is None:
+        if update_diff is None or isinstance(game_info.major, str | None):
             progress.finish("<comment>Game is already updated.</comment>")
             return
         progress.finish("<comment>Update available.</comment>")
@@ -590,16 +589,17 @@ class UpdateDownloadCommand(Command):
             f"The current version is: <comment>{State.game.get_version_str()}</comment>"
         )
         self.line(
-            f"The latest version is: <comment>{game_info.latest.version}</comment>"
+            f"The latest version is: <comment>{game_info.major.version}</comment>"
         )
         if not self.confirm("Do you want to download the update?"):
             self.line("<error>Download aborted.</error>")
             return
         self.line("Downloading update package...")
-        out_path = State.game.cache.joinpath(update_diff.name)
+        update_game_url = update_diff.game_pkgs[0].url
+        out_path = State.game.cache.joinpath(PurePath(update_game_url).name)
         try:
             download_result = utils.download(
-                update_diff.path, out_path, file_len=update_diff.size
+                update_game_url, out_path, file_len=update_diff.game_pkgs[0].size
             )
         except Exception as e:
             self.line_error(f"<error>Couldn't download update: {e}</error>")
@@ -612,14 +612,14 @@ class UpdateDownloadCommand(Command):
         # Get installed voicepacks
         installed_voicepacks = State.game.get_installed_voicepacks()
         # Voicepack update
-        for remote_voicepack in update_diff.voice_packs:
+        for remote_voicepack in update_diff.audio_pkgs:
             if remote_voicepack.language not in installed_voicepacks:
                 continue
             # Voicepack is installed, update it
-            archive_file = State.game.cache.joinpath(remote_voicepack.name)
+            archive_file = State.game.cache.joinpath(PurePath(remote_voicepack.url).name)
             try:
                 download_result = utils.download(
-                    remote_voicepack.path, archive_file, file_len=update_diff.size
+                    remote_voicepack.url, archive_file, file_len=remote_voicepack.size
                 )
             except Exception as e:
                 self.line_error(f"<error>Couldn't download update: {e}</error>")
@@ -652,7 +652,7 @@ class ApplyUpdateArchive(Command):
             State.game.apply_update_archive(update_archive, auto_repair=auto_repair)
         except Exception as e:
             progress.finish(
-                f"<error>Couldn't apply update: {e} ({e.__context__})</error>"
+                f"<error>Couldn't apply update: {e} \n({traceback.format_exc()})</error>"
             )
             return
         progress.finish("<comment>Update applied.</comment>")
