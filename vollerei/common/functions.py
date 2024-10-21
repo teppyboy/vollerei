@@ -1,9 +1,9 @@
 import concurrent.futures
-from io import IOBase
 import json
 import hashlib
+import py7zr
+from io import IOBase
 from pathlib import Path
-import zipfile
 from vollerei.abc.launcher.game import GameABC
 from vollerei.exceptions.game import RepairError
 from vollerei.utils import HDiffPatch, HPatchZPatchError
@@ -32,7 +32,8 @@ def apply_update_archive(
     # Install HDiffPatch
     _hdiff.hpatchz()
     # Open archive
-    archive = zipfile.ZipFile(archive_file, "r")
+    # archive = zipfile.ZipFile(archive_file, "r")
+    archive = py7zr.SevenZipFile(archive_file, "r")
     # Get files list (we don't want to extract all of them)
     files = archive.namelist()
     # Don't extract these files (they're useless and if the game isn't patched then
