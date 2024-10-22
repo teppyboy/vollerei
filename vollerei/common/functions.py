@@ -43,14 +43,19 @@ def apply_update_archive(
             files.remove(file)
         except ValueError:
             pass
+    # Think for me a better name for this variable
+    txtfiles = archive.read(["deletefiles.txt", "hdifffiles.txt"])
     try:
         # miHoYo loves CRLF
-        deletefiles = archive.read("deletefiles.txt").decode().split("\r\n")
+        deletebytes = txtfiles["deletefiles.txt"].read()
+        if deletebytes is bytes:
+            deletebytes = deletebytes.decode()
+        deletefiles = deletebytes.split("\r\n")
     except IOError:
         pass
     else:
         for file_str in deletefiles:
-            file = game.path.joinpath(file)
+            file = game.path.joinpath(file_str)
             if file == game.path:
                 # Don't delete the game folder
                 continue
@@ -63,7 +68,10 @@ def apply_update_archive(
     # hdiffpatch implementation
     # Read hdifffiles.txt to get the files to patch
     hdifffiles = []
-    for x in archive.read("hdifffiles.txt").decode().split("\r\n"):
+    hdiffbytes = txtfiles["hdifffiles.txt"].read()
+    if hdiffbytes is bytes:
+        hdiffbytes = hdiffbytes.decode()
+    for x in hdiffbytes.split("\r\n"):
         try:
             hdifffiles.append(json.loads(x.strip())["remoteName"])
         except json.JSONDecodeError:
@@ -75,7 +83,8 @@ def apply_update_archive(
         # Delete old patch file if exists
         patchpath.unlink(missing_ok=True)
         # Extract patch file
-        archive.extract(patch_file, game.temppath)
+        # Spaghetti code :(, fuck my eyes.
+        archive.extract(game.temppath, [patch_file])
         file = file.rename(file.with_suffix(file.suffix + ".bak"))
         try:
             _hdiff.patch_file(file, file.with_suffix(""), patchpath)
@@ -97,10 +106,10 @@ def apply_update_archive(
         # Remove old file, since we don't need it anymore.
         file.unlink()
 
-    def extract_or_repair(file):
+    def extract_or_repair(file: str):
         # Extract file
         try:
-            archive.extract(file, game.path)
+            archive.extract(game.path, [file])
         except Exception as e:
             # Repair file
             if not auto_repair:
@@ -126,10 +135,12 @@ def apply_update_archive(
     patch_executor.shutdown(wait=True)
 
     # Extract files from archive after we have filtered out the patch files
-    # Using ThreadPoolExecutor instead of archive.extractall() because
+    # Using ProcessPoolExecutor instead of archive.extractall() because
     # archive.extractall() can crash with large archives, and it doesn't
     # handle broken files.
-    extract_executor = concurrent.futures.ThreadPoolExecutor()
+    # ProcessPoolExecutor is faster than ThreadPoolExecutor, and it shouldn't 
+    # cause any problems here.
+    extract_executor = concurrent.futures.ProcessPoolExecutor()
     for file in files:
         extract_executor.submit(extract_or_repair, file)
     extract_executor.shutdown(wait=True)
@@ -213,7 +224,7 @@ def repair_game(
                 # We only need to read 4 bytes to see if the file is readable or not
                 f.read(4)
         except Exception:
-            print(f"File {file=} is corrupted.")
+            print(f"File '{file}' is corrupted.")
             target_files.append(file)
     # value not used for now
     for key, _ in pkg_version.items():

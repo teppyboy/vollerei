@@ -23,8 +23,8 @@ class PatchType(Enum):
     Jadeite: The new patch which patch the game in memory by DLL injection.
     """
 
-    Astra: int = 0
-    Jadeite: int = 1
+    Astra = 0
+    Jadeite = 1
 
 
 class Patcher(PatcherABC):
