@@ -20,13 +20,18 @@ class GamePackage:
         self.decompressed_size = decompressed_size
 
     @staticmethod
-    def from_dict(data: dict) -> "GamePackage":
-        return GamePackage(
-            url=data["url"],
-            md5=data["md5"],
-            size=int(data["size"]),
-            decompressed_size=int(data["decompressed_size"]),
-        )
+    def from_dict(data: list[dict]) -> list["GamePackage"]:
+        game_pkgs = []
+        for pkg in data:
+            game_pkgs.append(
+                GamePackage(
+                    url=pkg["url"],
+                    md5=pkg["md5"],
+                    size=int(pkg["size"]),
+                    decompressed_size=int(pkg["decompressed_size"]),
+                )
+            )
+        return game_pkgs
 
 
 class AudioPackage:
@@ -45,14 +50,19 @@ class AudioPackage:
         self.decompressed_size = decompressed_size
 
     @staticmethod
-    def from_dict(data: dict) -> "AudioPackage":
-        return AudioPackage(
-            language=VoicePackLanguage.from_remote_str(data["language"]),
-            url=data["url"],
-            md5=data["md5"],
-            size=int(data["size"]),
-            decompressed_size=int(data["decompressed_size"]),
-        )
+    def from_dict(data: list[dict]) -> "AudioPackage":
+        audio_pkgs = []
+        for pkg in data:
+            audio_pkgs.append(
+                AudioPackage(
+                    language=VoicePackLanguage.from_remote_str(pkg["language"]),
+                    url=pkg["url"],
+                    md5=pkg["md5"],
+                    size=int(pkg["size"]),
+                    decompressed_size=int(pkg["decompressed_size"]),
+                )
+            )
+        return audio_pkgs
 
 
 class Major:
@@ -72,8 +82,8 @@ class Major:
     def from_dict(data: dict) -> "Major":
         return Major(
             version=data["version"],
-            game_pkgs=[GamePackage(**x) for x in data["game_pkgs"]],
-            audio_pkgs=[AudioPackage(**x) for x in data["audio_pkgs"]],
+            game_pkgs=GamePackage.from_dict(data["game_pkgs"]),
+            audio_pkgs=AudioPackage.from_dict(data["audio_pkgs"]),
             res_list_url=data["res_list_url"],
         )
 
@@ -104,7 +114,7 @@ class PreDownload:
     @staticmethod
     def from_dict(data: dict | None) -> Union["PreDownload", None]:
         # pre_download can be null in the server for certain games
-        # e.g. HI3: 
+        # e.g. HI3:
         # "pre_download": null
         # while in GI it is the following:
         # "pre_download": {

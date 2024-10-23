@@ -45,10 +45,14 @@ def apply_update_archive(
             pass
     # Think for me a better name for this variable
     txtfiles = archive.read(["deletefiles.txt", "hdifffiles.txt"])
+    # Reset archive to extract files
+    archive.reset()
     try:
         # miHoYo loves CRLF
         deletebytes = txtfiles["deletefiles.txt"].read()
-        if deletebytes is bytes:
+        if deletebytes is not str:
+            # Typing
+            deletebytes: bytes
             deletebytes = deletebytes.decode()
         deletefiles = deletebytes.split("\r\n")
     except IOError:
@@ -69,7 +73,9 @@ def apply_update_archive(
     # Read hdifffiles.txt to get the files to patch
     hdifffiles = []
     hdiffbytes = txtfiles["hdifffiles.txt"].read()
-    if hdiffbytes is bytes:
+    if hdiffbytes is not str:
+        # Typing
+        hdiffbytes: bytes
         hdiffbytes = hdiffbytes.decode()
     for x in hdiffbytes.split("\r\n"):
         try:
@@ -78,13 +84,9 @@ def apply_update_archive(
             pass
 
     # Patch function
-    def extract_and_patch(file, patch_file):
+    def patch(file, patch_file):
         patchpath = game.cache.joinpath(patch_file)
-        # Delete old patch file if exists
-        patchpath.unlink(missing_ok=True)
-        # Extract patch file
         # Spaghetti code :(, fuck my eyes.
-        archive.extract(game.temppath, [patch_file])
         file = file.rename(file.with_suffix(file.suffix + ".bak"))
         try:
             _hdiff.patch_file(file, file.with_suffix(""), patchpath)
@@ -106,18 +108,9 @@ def apply_update_archive(
         # Remove old file, since we don't need it anymore.
         file.unlink()
 
-    def extract_or_repair(file: str):
-        # Extract file
-        try:
-            archive.extract(game.path, [file])
-        except Exception as e:
-            # Repair file
-            if not auto_repair:
-                raise e
-            game.repair_file(game.path.joinpath(file))
-
     # Multi-threaded patching
     patch_jobs = []
+    patch_files = []
     for file_str in hdifffiles:
         file = game.path.joinpath(file_str)
         if not file.exists():
@@ -126,8 +119,13 @@ def apply_update_archive(
         patch_file: str = file_str + ".hdiff"
         # Remove hdiff files from files list to extract
         files.remove(patch_file)
-        patch_jobs.append([extract_and_patch, [file, patch_file]])
+        # Add file to extract list
+        patch_files.append(patch_file)
+        patch_jobs.append([patch, [file, patch_file]])
 
+    # Extract patch files to temporary dir
+    archive.extract(game.cache, patch_files)
+    archive.reset()  # For the next extraction
     # Create new ThreadPoolExecutor for patching
     patch_executor = concurrent.futures.ThreadPoolExecutor()
     for job in patch_jobs:
@@ -135,15 +133,7 @@ def apply_update_archive(
     patch_executor.shutdown(wait=True)
 
     # Extract files from archive after we have filtered out the patch files
-    # Using ProcessPoolExecutor instead of archive.extractall() because
-    # archive.extractall() can crash with large archives, and it doesn't
-    # handle broken files.
-    # ProcessPoolExecutor is faster than ThreadPoolExecutor, and it shouldn't 
-    # cause any problems here.
-    extract_executor = concurrent.futures.ProcessPoolExecutor()
-    for file in files:
-        extract_executor.submit(extract_or_repair, file)
-    extract_executor.shutdown(wait=True)
+    archive.extract(game.path, files)
 
     # Close the archive
     archive.close()

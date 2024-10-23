@@ -106,7 +106,6 @@ class Game(GameABC):
             return False
         if (
             not self._path.joinpath("StarRail.exe").exists()
-            or not self._path.joinpath("StarRailBase.dll").exists()
             or not self._path.joinpath("StarRail_Data").exists()
         ):
             return False
@@ -166,11 +165,13 @@ class Game(GameABC):
         if not cfg_file.exists():
             return (0, 0, 0)
         cfg = ConfigFile(cfg_file)
-        if "General" not in cfg.sections():
+        # Fk u miHoYo
+        if "general" in cfg.sections():
+            version_str = cfg.get("general", "game_version", fallback="0.0.0")
+        elif "General" in cfg.sections():
+            version_str = cfg.get("General", "game_version", fallback="0.0.0")
+        else:
             return (0, 0, 0)
-        if "game_version" not in cfg["General"]:
-            return (0, 0, 0)
-        version_str = cfg["General"]["game_version"]
         if version_str.count(".") != 2:
             return (0, 0, 0)
         try:
@@ -196,10 +197,14 @@ class Game(GameABC):
                 {
                     "General": {
                         "channel": 1,
-                        "cps": "hoyoverse_PC",
+                        "cps": "hyp_hoyoverse",
                         "game_version": self.get_version_str(),
                         "sub_channel": 1,
                         "plugin_2_version": "0.0.1",
+                        "uapc": {
+                            "hkrpg_global": {"uapc": "f5c7c6262812_"},
+                            "hyp": {"uapc": ""},
+                        },  # Honestly what's this?
                     }
                 }
             )
@@ -294,19 +299,22 @@ class Game(GameABC):
         if not self.is_installed():
             raise GameNotInstalledError("Game is not installed.")
         voicepacks = []
+        blacklisted_words = ["SFX"]
         for child in (
             self.data_folder()
             .joinpath("Persistent/Audio/AudioPackage/Windows/")
             .iterdir()
         ):
-            if child.is_dir():
+            if child.resolve().is_dir() and child.name not in blacklisted_words:
                 try:
                     voicepacks.append(VoicePackLanguage[child.name])
                 except ValueError:
                     pass
         return voicepacks
 
-    def get_remote_game(self, pre_download: bool = False) -> resource.Main | resource.PreDownload:
+    def get_remote_game(
+        self, pre_download: bool = False
+    ) -> resource.Main | resource.PreDownload:
         """
         Gets the current game information from remote.
 
@@ -352,9 +360,7 @@ class Game(GameABC):
     def _repair_file(self, file: PathLike, game: resource.Main) -> None:
         # .replace("\\", "/") is needed because Windows uses backslashes :)
         relative_file = file.relative_to(self._path)
-        url = (
-            game.major.res_list_url + "/" + str(relative_file).replace("\\", "/")
-        )
+        url = game.major.res_list_url + "/" + str(relative_file).replace("\\", "/")
         # Backup the file
         if file.exists():
             backup_file = file.with_suffix(file.suffix + ".bak")
