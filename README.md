@@ -4,6 +4,13 @@
 
 An open-source launcher for anime games
 
+## Installation
+
+Assumming you have `pipx` installed, execute the following command:
+```bash
+pipx install git+https://git.tretrauit.me/tretrauit/vollerei --preinstall tqdm
+```
+
 ## Why?
 
 I've done [worthless-launcher](https://tretrauit.gitlab.io/worthless-launcher) for an open-world anime game, 
@@ -11,9 +18,28 @@ since I want to support other anime games and the launcher code is very messy, t
 
 ## Features
 
-+ Nothing, I haven't written any code yet.
+### Turn-based game
+- [ ] Installation
+- [ ] Voicepacks installation
+- [ ] Uninstall the game (Just remove the game files)
+- [x] Download the game update (including pre-downloads if available)
+- [x] Get the game version
+- [x] Get installed voicepacks
+- [x] Patch the game for unsupported platforms (with telemetry checking)
+- [x] Update the game
+- [x] Update voicepacks 
+- [x] Repair the game (Smarter than the official launcher!)
+#### Advanced features
+- [x] Apply the update archives
+- [x] Download the update archives
+- [x] Easy to use API
 
-### Notes
+### Other games
+I haven't developed for them yet, but since most of the code is shared I'll do that when I have the motivation to do so.
+
+~~Help me get motivated by going to https://paypal.me/tretrauit and send me a coffee lol~~
+
+## Notes
 
 This launcher tries to mimic the official launcher behaviour as much as possible but if a ban appears, I will
 not be responsible for it. (*Turn-based game* have a ban wave already, see AAGL discord for more info)
