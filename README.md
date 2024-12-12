@@ -19,16 +19,20 @@ since I want to support other anime games and the launcher code is very messy, t
 ## Features
 
 ### Turn-based game
-- [ ] Installation
-- [ ] Voicepacks installation
-- [ ] Uninstall the game (Just remove the game files)
+- [x] Cross-platform support
+    > Tested on Windows and Linux myself, although should work on most major OSes where `HDiffPatch` is supported.
+- [x] Does *not* require administrator/root privileges
+    > Though if issues occur during installation/upgrading process, you can always try running the program with elevated privileges to fix them.
 - [x] Download the game update (including pre-downloads if available)
 - [x] Get the game version
 - [x] Get installed voicepacks
+- [ ] Installation
 - [x] Patch the game for unsupported platforms (with telemetry checking)
+- [x] Repair the game (Smarter than the official launcher!)
 - [x] Update the game
 - [x] Update voicepacks 
-- [x] Repair the game (Smarter than the official launcher!)
+- [ ] Uninstall the game (Just remove the game files)
+- [ ] Voicepacks installation
 #### Advanced features
 - [x] Apply the update archives
 - [x] Download the update archives
