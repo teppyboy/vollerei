@@ -4,7 +4,7 @@ from cleo.helpers import option, argument
 from copy import deepcopy
 from pathlib import PurePath
 from platform import system
-from vollerei.common.enums import GameChannel
+from vollerei.common.enums import GameChannel, VoicePackLanguage
 from vollerei.cli import utils
 from vollerei.exceptions.game import GameError
 from vollerei.hsr import Game, Patcher
@@ -129,9 +129,97 @@ class VoicepackList(Command):
         self.line(f"Available voicepacks: {', '.join(available_voicepacks_str)}")
 
 
-class VoicepackUpdateAll(Command):
-    name = "hsr voicepack update-all"
-    description = "Updates all installed voicepacks"
+class VoicepackInstall(Command):
+    name = "hsr voicepack install"
+    description = (
+        "Installs the specified installed voicepacks"
+    )
+    options = default_options + [
+        option("pre-download", description="Pre-download the game if available"),
+    ]
+    arguments = [
+        argument(
+            "language", description="Languages to install", multiple=True, optional=True
+        )
+    ]
+
+    def handle(self):
+        callback(command=self)
+        pre_download = self.option("pre-download")
+        # Typing manually because pylance detect it as Any
+        languages: list[str] = self.argument("language")
+        # Get installed voicepacks
+        language_objects = []
+        for language in languages:
+            language = language.lower()
+            try:
+                language_objects.append(VoicePackLanguage[language.capitalize()])
+            except KeyError:
+                try:
+                    language_objects.append(VoicePackLanguage.from_remote_str(language))
+                except ValueError:
+                    self.line_error(f"<error>Invalid language: {language}</error>")
+        if len(language_objects) == 0:
+            self.line_error(
+                "<error>No valid languages specified, you must specify a language to install</error>"
+            )
+            return
+        progress = utils.ProgressIndicator(self)
+        progress.start("Fetching install package information... ")
+        try:
+            game_info = State.game.get_remote_game(pre_download=pre_download)
+        except Exception as e:
+            progress.finish(
+                f"<error>Fetching failed with following error: {e} \n{traceback.format_exc()}</error>"
+            )
+            return
+        progress.finish(
+            "<comment>Installation information fetched successfully.</comment>"
+        )
+        if not self.confirm("Do you want to install the specified voicepacks?"):
+            self.line("<error>Installation aborted.</error>")
+            return
+        # Voicepack update
+        for remote_voicepack in game_info.major.audio_pkgs:
+            if remote_voicepack.language not in language_objects:
+                continue
+            self.line(
+                f"Downloading install package for language: <comment>{remote_voicepack.language.name}</comment>... "
+            )
+            archive_file = State.game.cache.joinpath(PurePath(remote_voicepack.url).name)
+            try:
+                download_result = utils.download(
+                    remote_voicepack.url, archive_file, file_len=remote_voicepack.size
+                )
+            except Exception as e:
+                self.line_error(f"<error>Couldn't download package: {e}</error>")
+                return
+            if not download_result:
+                self.line_error("<error>Download failed.</error>")
+                return
+            self.line("Download completed.")
+            progress = utils.ProgressIndicator(self)
+            progress.start("Installing package...")
+            try:
+                State.game.install_archive(archive_file)
+            except Exception as e:
+                progress.finish(
+                    f"<error>Couldn't apply package: {e} \n{traceback.format_exc()}</error>"
+                )
+                return
+            progress.finish(
+                f"<comment>Package applied for language {remote_voicepack.language.name}.</comment>"
+            )
+        self.line(
+            f"The voicepacks have been installed to version: <comment>{State.game.get_version_str()}</comment>"
+        )
+
+
+class VoicepackUpdate(Command):
+    name = "hsr voicepack update"
+    description = (
+        "Updates the specified installed voicepacks, if not specified, updates all"
+    )
     options = default_options + [
         option(
             "auto-repair", "R", description="Automatically repair the game if needed"
@@ -141,23 +229,44 @@ class VoicepackUpdateAll(Command):
             "from-version", description="Update from a specific version", flag=False
         ),
     ]
+    arguments = [
+        argument(
+            "language", description="Languages to update", multiple=True, optional=True
+        )
+    ]
 
     def handle(self):
         callback(command=self)
         auto_repair = self.option("auto-repair")
         pre_download = self.option("pre-download")
         from_version = self.option("from-version")
+        # Typing manually because pylance detect it as Any
+        languages: list[str] = self.argument("language")
         if auto_repair:
             self.line("<comment>Auto-repair is enabled.</comment>")
         if from_version:
             self.line(f"Updating from version: <comment>{from_version}</comment>")
             State.game.version_override = from_version
         # Get installed voicepacks
+        if len(languages) == 0:
+            self.line(
+                "<comment>No languages specified, updating all installed voicepacks...</comment>"
+            )
         installed_voicepacks = State.game.get_installed_voicepacks()
+        if len(languages) > 0:
+            languages = [x.lower() for x in languages]
+            # Support both English and en-us and en
+            installed_voicepacks = [
+                x
+                for x in installed_voicepacks
+                if x.name.lower() in languages
+                or x.value.lower() in languages
+                or x.name.lower()[:2] in languages
+            ]
         installed_voicepacks_str = [
             f"<comment>{str(x.name)}</comment>" for x in installed_voicepacks
         ]
-        self.line(f"Installed voicepacks: {', '.join(installed_voicepacks_str)}")
+        self.line(f"Updating voicepacks: {', '.join(installed_voicepacks_str)}")
         progress = utils.ProgressIndicator(self)
         progress.start("Checking for updates... ")
         try:
@@ -684,7 +793,7 @@ class InstallDownloadCommand(Command):
                 self.line_error("<error>Download failed.</error>")
                 return
         self.line("Download completed.")
-    
+
 
 class UpdateDownloadCommand(Command):
     name = "hsr update download"
@@ -838,7 +947,8 @@ commands = [
     UpdatePatchCommand,
     UpdateCommand,
     UpdateDownloadCommand,
+    VoicepackInstall,
     VoicepackList,
     VoicepackListInstalled,
-    VoicepackUpdateAll,
+    VoicepackUpdate,
 ]

@@ -31,8 +31,8 @@ since I want to support other anime games and the launcher code is very messy, t
 - [x] Repair the game (Smarter than the official launcher!)
 - [x] Update the game
 - [x] Update voicepacks 
-- [ ] Uninstall the game (Just remove the game files)
-- [ ] Voicepacks installation
+- [ ] Uninstall the game (Just remove the game directory lol)
+- [x] Voicepacks installation
 #### Advanced features
 - [x] Apply the update archives
 - [x] Download the update archives
