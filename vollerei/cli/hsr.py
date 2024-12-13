@@ -637,6 +637,55 @@ class RepairCommand(Command):
         progress.finish("<comment>Repairation completed.</comment>")
 
 
+class InstallDownloadCommand(Command):
+    name = "hsr install download"
+    description = (
+        "Downloads the latest version of the game. "
+        + "Note that this will not download the default voicepack (English), you need to download it manually."
+    )
+    options = default_options + [
+        option("pre-download", description="Pre-download the game if available"),
+    ]
+
+    def handle(self):
+        callback(command=self)
+        pre_download = self.option("pre-download")
+        progress = utils.ProgressIndicator(self)
+        progress.start("Fetching install package information... ")
+        try:
+            game_info = State.game.get_remote_game(pre_download=pre_download)
+        except Exception as e:
+            progress.finish(
+                f"<error>Fetching failed with following error: {e} \n{traceback.format_exc()}</error>"
+            )
+            return
+        progress.finish(
+            "<comment>Installation information fetched successfully.</comment>"
+        )
+        if not self.confirm("Do you want to download the game?"):
+            self.line("<error>Download aborted.</error>")
+            return
+        self.line("Downloading install package...")
+        first_pkg_out_path = None
+        for game_pkg in game_info.major.game_pkgs:
+            out_path = State.game.cache.joinpath(PurePath(game_pkg.url).name)
+            if not first_pkg_out_path:
+                first_pkg_out_path = out_path
+            try:
+                download_result = utils.download(
+                    game_pkg.url, out_path, file_len=game_pkg.size
+                )
+            except Exception as e:
+                self.line_error(
+                    f"<error>Couldn't download install package: {e}</error>"
+                )
+                return
+            if not download_result:
+                self.line_error("<error>Download failed.</error>")
+                return
+        self.line("Download completed.")
+    
+
 class UpdateDownloadCommand(Command):
     name = "hsr update download"
     description = "Download the update for the local game if available"
@@ -780,6 +829,7 @@ commands = [
     ApplyUpdateArchive,
     GetVersionCommand,
     InstallCommand,
+    InstallDownloadCommand,
     PatchCommand,
     PatchInstallCommand,
     PatchTelemetryCommand,
