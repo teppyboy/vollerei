@@ -18,7 +18,7 @@ since I want to support other anime games and the launcher code is very messy, t
 
 ## Features
 
-### Turn-based game
+### Turn-based game / Open-world game
 - [x] Cross-platform support
     > Tested on Windows and Linux myself, although should work on most major OSes where `HDiffPatch` is supported.
 - [x] Does *not* require administrator/root privileges
@@ -28,6 +28,7 @@ since I want to support other anime games and the launcher code is very messy, t
 - [x] Get installed voicepacks
 - [x] Installation
 - [x] Patch the game for unsupported platforms (with telemetry checking)
+    > Not applicable for the "Open-world game", since patching is unneeded to play the game.
 - [x] Repair the game (Smarter than the official launcher!)
 - [x] Update the game
 - [x] Update voicepacks 
@@ -38,7 +39,7 @@ since I want to support other anime games and the launcher code is very messy, t
 - [x] Download the update archives
 - [x] Easy to use API
 
-### Other games
+### Other games (Proxy game & Dreamseeker game)
 I haven't developed for them yet, but since most of the code is shared I'll do that when I have the motivation to do so.
 
 ~~Help me get motivated by going to https://paypal.me/tretrauit and send me a coffee lol~~
