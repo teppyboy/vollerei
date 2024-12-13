@@ -5,7 +5,7 @@ import py7zr
 from io import IOBase
 from os import PathLike
 from pathlib import Path
-from shutil import move, copyfile
+from shutil import move
 from vollerei.abc.launcher.game import GameABC
 from vollerei.common.api import resource
 from vollerei.exceptions.game import (

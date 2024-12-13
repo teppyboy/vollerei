@@ -450,7 +450,7 @@ class PatchInstallCommand(Command):
                 return
             try:
                 patcher.block_telemetry(telemetry_list=telemetry_list)
-            except Exception as e:
+            except Exception:
                 self.line_error(
                     f"<error>Couldn't block telemetry hosts: {traceback.format_exc()}</error>"
                 )
@@ -509,7 +509,7 @@ class PatchTelemetryCommand(Command):
                 return
             try:
                 patcher.block_telemetry(telemetry_list=telemetry_list)
-            except Exception as e:
+            except Exception:
                 self.line_error(
                     f"<error>Couldn't block telemetry hosts: {traceback.format_exc()}</error>"
                 )
