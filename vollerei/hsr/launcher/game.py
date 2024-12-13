@@ -240,7 +240,7 @@ class Game(GameABC):
         version_ptr = 0
         correct = True
         try:
-            with self.data_folder().joinpath("data.unity3d").open("rb") as f:
+            with data_file.open("rb") as f:
                 f.seek(0x7D0)  # 2000 in decimal
                 for byte in f.read(10000):
                     match byte:
