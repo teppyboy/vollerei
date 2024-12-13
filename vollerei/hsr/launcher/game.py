@@ -192,15 +192,16 @@ class Game(GameABC):
             cfg = ConfigParser()
             cfg.read_dict(
                 {
-                    "General": {
+                    "general": {
                         "channel": 1,
                         "cps": "hyp_hoyoverse",
                         "game_version": self.get_version_str(),
-                        "sub_channel": 1,
-                        "plugin_2_version": "0.0.1",
+                        "sub_channel": 0,
+                        # This is probably should be fetched from the server but well
+                        "plugin_n06mjyc2r3_version": "1.1.0",
                         "uapc": {
                             "hkrpg_global": {"uapc": "f5c7c6262812_"},
-                            "hyp": {"uapc": ""},
+                            "hyp": {"uapc": "f55586a8ce9f_"},
                         },  # Honestly what's this?
                     }
                 }
@@ -228,14 +229,13 @@ class Game(GameABC):
 
         data_file = self.data_folder().joinpath("data.unity3d")
         if not data_file.exists():
-            return (0, 0, 0)
+            return self.get_version_config()
 
         def bytes_to_int(byte_array: list[bytes]) -> int:
             bytes_as_int = int.from_bytes(byte_array, byteorder="big")
             actual_int = bytes_as_int - 48  # 48 is the ASCII code for 0
             return actual_int
 
-        allowed = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57]
         version_bytes: list[list[bytes]] = [[], [], []]
         version_ptr = 0
         correct = True
@@ -265,7 +265,7 @@ class Game(GameABC):
                                     bytes_to_int(version_bytes[2]),
                                 )
                         case _:
-                            if correct and byte in allowed:
+                            if correct and byte in b"0123456789":
                                 version_bytes[version_ptr].append(byte)
                             else:
                                 correct = False
