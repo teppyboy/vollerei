@@ -26,7 +26,7 @@ since I want to support other anime games and the launcher code is very messy, t
 - [x] Download the game update (including pre-downloads if available)
 - [x] Get the game version
 - [x] Get installed voicepacks
-- [ ] Installation
+- [x] Installation
 - [x] Patch the game for unsupported platforms (with telemetry checking)
 - [x] Repair the game (Smarter than the official launcher!)
 - [x] Update the game

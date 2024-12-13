@@ -401,6 +401,22 @@ class Game(GameABC):
         """
         functions.repair_game(self)
 
+    def install_archive(self, archive_file: PathLike | IOBase) -> None:
+        """
+        Applies an install archive to the game, it can be the game itself or a
+        voicepack one.
+
+        `archive_file` can be a path to the archive file or a file-like object,
+        like if you have very high amount of RAM and want to download the archive
+        to memory instead of disk, this can be useful for you.
+
+        Args:
+            archive_file (PathLike | IOBase): The archive file.
+        """
+        if not isinstance(archive_file, IOBase):
+            archive_file = Path(archive_file)
+        functions.install_archive(self, archive_file)
+
     def apply_update_archive(
         self, archive_file: PathLike | IOBase, auto_repair: bool = True
     ) -> None:

@@ -10,6 +10,7 @@ from vollerei.abc.launcher.game import GameABC
 from vollerei.common.api import resource
 from vollerei.exceptions.game import (
     RepairError,
+    GameAlreadyInstalledError,
     GameNotInstalledError,
     ScatteredFilesNotAvailableError,
 )
@@ -143,6 +144,23 @@ def apply_update_archive(
     archive.extract(game.path, files)
 
     # Close the archive
+    archive.close()
+
+
+def install_archive(game: GameABC, archive_file: Path | IOBase) -> None:
+    """
+    Applies an install archive to the game, it can be the game itself or a
+    voicepack one.
+
+    Because this function is shared for all games, you should use the game's
+    `install_archive()` method instead, which additionally applies required
+    methods for that game.
+    """
+    if game.is_installed():
+        raise GameAlreadyInstalledError("Game is already installed.")
+    # It's literally 3 lines but okay
+    archive = py7zr.SevenZipFile(archive_file, "r")
+    archive.extractall(game.path)
     archive.close()
 
 

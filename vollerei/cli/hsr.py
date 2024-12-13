@@ -80,6 +80,23 @@ def callback(
     command.add_style("warn", fg="yellow")
 
 
+def set_version_config(self: Command):
+    self.line("Setting version config... ")
+    try:
+        State.game.set_version_config()
+    except Exception as e:
+        self.line_error(f"<warn>Couldn't set version config: {e}</warn>")
+        self.line_error(
+            "This won't affect the overall experience, but if you're using the official launcher"
+        )
+        self.line_error(
+            "you may have to edit the file 'config.ini' manually to reflect the latest version."
+        )
+    self.line(
+        f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
+    )
+
+
 class VoicepackListInstalled(Command):
     name = "hsr voicepack list-installed"
     description = "Get the installed voicepacks"
@@ -198,8 +215,7 @@ class VoicepackUpdateAll(Command):
             progress.finish(
                 f"<comment>Update applied for language {remote_voicepack.language.name}.</comment>"
             )
-        self.line("Setting version config... ")
-        State.game.set_version_config()
+        set_version_config(self=self)
         self.line(
             f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
         )
@@ -407,6 +423,72 @@ class GetVersionCommand(Command):
             self.line_error(f"<error>Couldn't get game version: {e}</error>")
 
 
+class InstallCommand(Command):
+    name = "hsr install"
+    description = (
+        "Installs the latest version of the game to the specified path (default: current directory). "
+        + "Note that this will not install the default voicepack (English), you need to install it manually."
+    )
+    options = default_options + [
+        option("pre-download", description="Pre-download the game if available"),
+    ]
+
+    def handle(self):
+        callback(command=self)
+        pre_download = self.option("pre-download")
+        progress = utils.ProgressIndicator(self)
+        progress.start("Fetching install package information... ")
+        try:
+            game_info = State.game.get_remote_game(pre_download=pre_download)
+        except Exception as e:
+            progress.finish(
+                f"<error>Fetching failed with following error: {e} \n{traceback.format_exc()}</error>"
+            )
+            return
+        progress.finish(
+            "<comment>Installation information fetched successfully.</comment>"
+        )
+        if not self.confirm("Do you want to install the game?"):
+            self.line("<error>Installation aborted.</error>")
+            return
+        self.line("Downloading install package...")
+        first_pkg_out_path = None
+        for game_pkg in game_info.major.game_pkgs:
+            out_path = State.game.cache.joinpath(PurePath(game_pkg.url).name)
+            if not first_pkg_out_path:
+                first_pkg_out_path = out_path
+            try:
+                download_result = utils.download(
+                    game_pkg.url, out_path, file_len=game_pkg.size
+                )
+            except Exception as e:
+                self.line_error(
+                    f"<error>Couldn't download install package: {e}</error>"
+                )
+                return
+            if not download_result:
+                self.line_error("<error>Download failed.</error>")
+                return
+        self.line("Download completed.")
+        progress = utils.ProgressIndicator(self)
+        progress.start("Installing package...")
+        try:
+            State.game.install_archive(first_pkg_out_path)
+        except Exception as e:
+            progress.finish(
+                f"<error>Couldn't install package: {e} \n{traceback.format_exc()}</error>"
+            )
+            return
+        progress.finish("<comment>Package applied for the base game.</comment>")
+        self.line("Setting version config... ")
+        State.game.version_override = game_info.major.version
+        set_version_config()
+        State.game.version_override = None
+        self.line(
+            f"The game has been installed to version: <comment>{State.game.get_version_str()}</comment>"
+        )
+
+
 class UpdateCommand(Command):
     name = "hsr update"
     description = "Updates the local game if available"
@@ -517,8 +599,9 @@ class UpdateCommand(Command):
                 f"<comment>Update applied for language {remote_voicepack.language.name}.</comment>"
             )
         self.line("Setting version config... ")
+        State.game.version_override = game_info.major.version
+        set_version_config()
         State.game.version_override = None
-        State.game.set_version_config()
         self.line(
             f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
         )
@@ -643,6 +726,28 @@ class UpdateDownloadCommand(Command):
             self.line("Download completed.")
 
 
+class ApplyInstallArchive(Command):
+    name = "hsr install apply-archive"
+    description = "Applies the install archive"
+    arguments = [argument("path", description="Path to the install archive")]
+    options = default_options
+
+    def handle(self):
+        callback(command=self)
+        install_archive = self.argument("path")
+        progress = utils.ProgressIndicator(self)
+        progress.start("Applying install package...")
+        try:
+            State.game.install_archive(install_archive)
+        except Exception as e:
+            progress.finish(
+                f"<error>Couldn't apply package: {e} \n{traceback.format_exc()}</error>"
+            )
+            return
+        progress.finish("<comment>Package applied.</comment>")
+        set_version_config(self=self)
+
+
 class ApplyUpdateArchive(Command):
     name = "hsr update apply-archive"
     description = "Applies the update archive to the local game"
@@ -655,10 +760,8 @@ class ApplyUpdateArchive(Command):
 
     def handle(self):
         callback(command=self)
-        auto_repair = self.option("auto-repair")
         update_archive = self.argument("path")
-        if auto_repair:
-            self.line("<comment>Auto-repair is enabled.</comment>")
+        auto_repair = self.option("auto-repair")
         progress = utils.ProgressIndicator(self)
         progress.start("Applying update package...")
         try:
@@ -669,25 +772,14 @@ class ApplyUpdateArchive(Command):
             )
             return
         progress.finish("<comment>Update applied.</comment>")
-        self.line("Setting version config... ")
-        try:
-            State.game.set_version_config()
-        except Exception as e:
-            self.line_error(f"<warn>Couldn't set version config: {e}</warn>")
-            self.line_error(
-                "This won't affect the overall experience, but if you're using the official launcher"
-            )
-            self.line_error(
-                "you may have to edit the file 'config.ini' manually to reflect the latest version."
-            )
-        self.line(
-            f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
-        )
+        set_version_config()
 
 
 commands = [
+    ApplyInstallArchive,
     ApplyUpdateArchive,
     GetVersionCommand,
+    InstallCommand,
     PatchCommand,
     PatchInstallCommand,
     PatchTelemetryCommand,
