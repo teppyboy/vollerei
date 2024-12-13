@@ -3,10 +3,17 @@ import json
 import hashlib
 import py7zr
 from io import IOBase
+from os import PathLike
 from pathlib import Path
+from shutil import move, copyfile
 from vollerei.abc.launcher.game import GameABC
-from vollerei.exceptions.game import RepairError
-from vollerei.utils import HDiffPatch, HPatchZPatchError
+from vollerei.common.api import resource
+from vollerei.exceptions.game import (
+    RepairError,
+    GameNotInstalledError,
+    ScatteredFilesNotAvailableError,
+)
+from vollerei.utils import HDiffPatch, HPatchZPatchError, download
 
 
 _hdiff = HDiffPatch()
@@ -139,6 +146,74 @@ def apply_update_archive(
     archive.close()
 
 
+def _repair_file(game: GameABC, file: PathLike, game_info: resource.Main) -> None:
+    # .replace("\\", "/") is needed because Windows uses backslashes :)
+    relative_file = file.relative_to(game.path)
+    url = game_info.major.res_list_url + "/" + str(relative_file).replace("\\", "/")
+    # Backup the file
+    if file.exists():
+        backup_file = file.with_suffix(file.suffix + ".bak")
+        if backup_file.exists():
+            backup_file.unlink()
+        file.rename(backup_file)
+        dest_file = file.with_suffix("")
+    else:
+        dest_file = file
+    try:
+        # Download the file
+        temp_file = game.cache.joinpath(relative_file)
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        print(f"Downloading repair file {url} to {temp_file}")
+        download(url, temp_file, overwrite=True, stream=True)
+        # Move the file
+        move(temp_file, dest_file)
+        print("OK")
+    except Exception as e:
+        # Restore the backup
+        print("Failed", e)
+        if file.exists():
+            file.rename(file.with_suffix(""))
+        raise e
+    # Delete the backup
+    if file.exists():
+        file.unlink(missing_ok=True)
+
+
+def repair_files(
+    game: GameABC,
+    files: list[PathLike],
+    pre_download: bool = False,
+    game_info: resource.Game = None,
+) -> None:
+    """
+    Repairs multiple game files.
+
+    This will automatically handle backup and restore the file if the repair
+    fails.
+
+    Args:
+        game (GameABC): The game to repair the files for.
+        file (PathLike): The file to repair.
+        pre_download (bool): Whether to get the pre-download version.
+            Defaults to False.
+    """
+    if not game.is_installed():
+        raise GameNotInstalledError("Game is not installed.")
+    files_path = [Path(file) for file in files]
+    for file in files_path:
+        if not file.is_relative_to(game.path):
+            raise ValueError("File is not in the game folder.")
+    if not game_info:
+        game_info = game.get_remote_game(pre_download=pre_download)
+    if game_info.latest.decompressed_path is None:
+        raise ScatteredFilesNotAvailableError("Scattered files are not available.")
+    executor = concurrent.futures.ThreadPoolExecutor()
+    for file in files_path:
+        executor.submit(_repair_file, file, game=game_info)
+        # self._repair_file(file, game=game)
+    executor.shutdown(wait=True)
+
+
 def repair_game(
     game: GameABC,
     pre_download: bool = False,
@@ -154,6 +229,8 @@ def repair_game(
     # Most code here are copied from worthless-launcher.
     # worthless-launcher uses asyncio for multithreading while this one uses
     # ThreadPoolExecutor, probably better for this use case.
+    if not game.is_installed():
+        raise GameNotInstalledError("Game is not installed.")
     game_info = game.get_remote_game(pre_download=pre_download)
     pkg_version_file = game.path.joinpath("pkg_version")
     pkg_version: dict[str, dict[str, str]] = {}

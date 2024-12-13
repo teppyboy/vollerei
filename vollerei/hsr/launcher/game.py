@@ -1,10 +1,8 @@
-import concurrent.futures
 from configparser import ConfigParser
 from hashlib import md5
 from io import IOBase
 from os import PathLike
 from pathlib import Path, PurePath
-from shutil import move, copyfile
 from vollerei.abc.launcher.game import GameABC
 from vollerei.common import ConfigFile, functions
 from vollerei.common.api import resource
@@ -13,7 +11,6 @@ from vollerei.exceptions.game import (
     GameAlreadyUpdatedError,
     GameNotInstalledError,
     PreDownloadNotAvailable,
-    ScatteredFilesNotAvailableError,
 )
 from vollerei.hsr.constants import MD5SUMS
 from vollerei.hsr.launcher import api
@@ -357,38 +354,6 @@ class Game(GameABC):
                 return patch
         return None
 
-    def _repair_file(self, file: PathLike, game: resource.Main) -> None:
-        # .replace("\\", "/") is needed because Windows uses backslashes :)
-        relative_file = file.relative_to(self._path)
-        url = game.major.res_list_url + "/" + str(relative_file).replace("\\", "/")
-        # Backup the file
-        if file.exists():
-            backup_file = file.with_suffix(file.suffix + ".bak")
-            if backup_file.exists():
-                backup_file.unlink()
-            file.rename(backup_file)
-            dest_file = file.with_suffix("")
-        else:
-            dest_file = file
-        try:
-            # Download the file
-            temp_file = self.cache.joinpath(relative_file)
-            dest_file.parent.mkdir(parents=True, exist_ok=True)
-            print(f"Downloading repair file {url} to {temp_file}")
-            download(url, temp_file, overwrite=True, stream=True)
-            # Move the file
-            copyfile(temp_file, dest_file)
-            print("OK")
-        except Exception as e:
-            # Restore the backup
-            print("Failed", e)
-            if file.exists():
-                file.rename(file.with_suffix(""))
-            raise e
-        # Delete the backup
-        if file.exists():
-            file.unlink(missing_ok=True)
-
     def repair_file(
         self,
         file: PathLike,
@@ -406,18 +371,7 @@ class Game(GameABC):
             pre_download (bool): Whether to get the pre-download version.
                 Defaults to False.
         """
-        if not self.is_installed():
-            raise GameNotInstalledError("Game is not installed.")
-        file = Path(file)
-        if not file.is_relative_to(self._path):
-            raise ValueError("File is not in the game folder.")
-        if not game_info:
-            game = self.get_remote_game(pre_download=pre_download)
-        else:
-            game = game_info
-        if isinstance(game.major, str | None) or game.major.res_list_url in [None, ""]:
-            raise ScatteredFilesNotAvailableError("Scattered files are not available.")
-        self._repair_file(file, game=game)
+        return self.repair_files([file], pre_download=pre_download, game_info=game_info)
 
     def repair_files(
         self,
@@ -436,31 +390,15 @@ class Game(GameABC):
             pre_download (bool): Whether to get the pre-download version.
                 Defaults to False.
         """
-        if not self.is_installed():
-            raise GameNotInstalledError("Game is not installed.")
-        files_path = [Path(file) for file in files]
-        for file in files_path:
-            if not file.is_relative_to(self._path):
-                raise ValueError("File is not in the game folder.")
-        if not game_info:
-            game = self.get_remote_game(pre_download=pre_download)
-        else:
-            game = game_info
-        if game.latest.decompressed_path is None:
-            raise ScatteredFilesNotAvailableError("Scattered files are not available.")
-        executor = concurrent.futures.ThreadPoolExecutor()
-        for file in files_path:
-            executor.submit(self._repair_file, file, game=game)
-            # self._repair_file(file, game=game)
-        executor.shutdown(wait=True)
+        functions.repair_files(
+            self, files, pre_download=pre_download, game_info=game_info
+        )
 
     def repair_game(self) -> None:
         """
         Tries to repair the game by reading "pkg_version" file and downloading the
         mismatched files from the server.
         """
-        if not self.is_installed():
-            raise GameNotInstalledError("Game is not installed.")
         functions.repair_game(self)
 
     def apply_update_archive(
