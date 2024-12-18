@@ -12,6 +12,7 @@ from vollerei.exceptions.patcher import PatcherError, PatchUpdateError
 from vollerei.genshin import Game as GenshinGame
 from vollerei.hsr import Game as HSRGame, Patcher as HSRPatcher
 from vollerei.hsr.patcher import PatchType as HSRPatchType
+from vollerei.zzz import Game as ZZZGame
 from vollerei import paths
 
 patcher = HSRPatcher()
@@ -67,6 +68,10 @@ def callback(
         patcher.patch_type = patch_type
     elif command.name.startswith("genshin"):
         State.game = GenshinGame(game_path)
+    elif command.name.startswith("zzz"):
+        State.game = ZZZGame(game_path)
+    else:
+        raise ValueError("Invalid game type")
     if channel:
         State.game.channel_override = channel
     utils.silent_message = silent
