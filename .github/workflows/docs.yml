@@ -27,7 +27,7 @@ jobs:
       - name: Build docs
         id: build
         run: |
-          mkdocs build
+          poetry run mkdocs build
 
       - name: Upload static files as artifact
         id: deployment
