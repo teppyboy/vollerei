@@ -9,11 +9,16 @@ jobs:
   # Build job
   build:
     # Specify runner +  build & upload the static files as an artifact
-    runs-on: python:latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         id: checkout-code
         uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         id: install
         run: |
