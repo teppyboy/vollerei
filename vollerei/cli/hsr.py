@@ -115,7 +115,7 @@ class VoicepackList(Command):
     name = "hsr voicepack list"
     description = "Get all available voicepacks"
     options = default_options + [
-        option("pre-download", description="Pre-download the game if available"),
+        option("pre-download", description="Pre-download the game if available."),
     ]
 
     def handle(self):
@@ -135,7 +135,7 @@ class VoicepackInstall(Command):
         "Installs the specified installed voicepacks"
     )
     options = default_options + [
-        option("pre-download", description="Pre-download the game if available"),
+        option("pre-download", description="Pre-download the game if available."),
     ]
     arguments = [
         argument(
@@ -222,9 +222,9 @@ class VoicepackUpdate(Command):
     )
     options = default_options + [
         option(
-            "auto-repair", "R", description="Automatically repair the game if needed"
+            "auto-repair", "R", description="Automatically repair the game if needed."
         ),
-        option("pre-download", description="Pre-download the game if available"),
+        option("pre-download", description="Pre-download the game if available."),
         option(
             "from-version", description="Update from a specific version", flag=False
         ),
@@ -539,7 +539,7 @@ class InstallCommand(Command):
         + "Note that this will not install the default voicepack (English), you need to install it manually."
     )
     options = default_options + [
-        option("pre-download", description="Pre-download the game if available"),
+        option("pre-download", description="Pre-download the game if available."),
     ]
 
     def handle(self):
@@ -603,9 +603,9 @@ class UpdateCommand(Command):
     description = "Updates the local game if available"
     options = default_options + [
         option(
-            "auto-repair", "R", description="Automatically repair the game if needed"
+            "auto-repair", "R", description="Automatically repair the game if needed."
         ),
-        option("pre-download", description="Pre-download the game if available"),
+        option("pre-download", description="Pre-download the game if available."),
         option(
             "from-version", description="Update from a specific version", flag=False
         ),
@@ -753,7 +753,7 @@ class InstallDownloadCommand(Command):
         + "Note that this will not download the default voicepack (English), you need to download it manually."
     )
     options = default_options + [
-        option("pre-download", description="Pre-download the game if available"),
+        option("pre-download", description="Pre-download the game if available."),
     ]
 
     def handle(self):
@@ -800,9 +800,9 @@ class UpdateDownloadCommand(Command):
     description = "Download the update for the local game if available"
     options = default_options + [
         option(
-            "auto-repair", "R", description="Automatically repair the game if needed"
+            "auto-repair", "R", description="Automatically repair the game if needed."
         ),
-        option("pre-download", description="Pre-download the game if available"),
+        option("pre-download", description="Pre-download the game if available."),
         option(
             "from-version", description="Update from a specific version", flag=False
         ),
@@ -912,7 +912,7 @@ class ApplyUpdateArchive(Command):
     arguments = [argument("path", description="Path to the update archive")]
     options = default_options + [
         option(
-            "auto-repair", "R", description="Automatically repair the game if needed"
+            "auto-repair", "R", description="Automatically repair the game if needed."
         ),
     ]
 

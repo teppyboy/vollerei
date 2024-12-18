@@ -1,32 +1,42 @@
+# THIS FILE CURRENTLY DOESN'T WORK YET.
+import copy
 import traceback
 from cleo.commands.command import Command
 from cleo.helpers import option, argument
 from pathlib import PurePath
+from platform import system
+from vollerei.abc.launcher.game import GameABC
 from vollerei.common.enums import GameChannel, VoicePackLanguage
 from vollerei.cli import utils
 from vollerei.exceptions.game import GameError
-from vollerei.genshin import Game
+from vollerei.exceptions.patcher import PatcherError, PatchUpdateError
+from vollerei.genshin import Game as GenshinGame
+from vollerei.hsr import Game as HSRGame, Patcher as HSRPatcher
+from vollerei.hsr.patcher import PatchType as HSRPatchType
 from vollerei import paths
+
+patcher = HSRPatcher()
 
 
 default_options = [
-    option("channel", "c", description="Game channel.", flag=False, default="overseas"),
-    option("force", "f", description="Force the command to run."),
+    option("channel", "c", description="Game channel", flag=False, default="overseas"),
+    option("force", "f", description="Force the command to run"),
     option(
         "game-path",
         "g",
-        description="Path to the game installation.",
+        description="Path to the game installation",
         flag=False,
         default=".",
     ),
-    option("temporary-path", "t", description="Temporary path.", flag=False),
-    option("silent", "s", description="Silent mode."),
-    option("noconfirm", "y", description="Do not ask for confirmation (yes to all)."),
+    option("patch-type", "p", description="Patch type", flag=False),
+    option("temporary-path", "t", description="Temporary path", flag=False),
+    option("silent", "s", description="Silent mode"),
+    option("noconfirm", "y", description="Do not ask for confirmation (yes to all)"),
 ]
 
 
 class State:
-    game: Game = None
+    game: GameABC = None
 
 
 def callback(
@@ -46,7 +56,18 @@ def callback(
         channel = GameChannel(channel)
     if temporary_path:
         paths.set_base_path(temporary_path)
-    State.game = Game(game_path, temporary_path)
+    if command.name.startswith("hsr"):
+        State.game = HSRGame(game_path, temporary_path)
+        patch_type = command.option("patch-type")
+        if patch_type is None:
+            patch_type = HSRPatchType.Jadeite
+        elif isinstance(patch_type, str):
+            patch_type = HSRPatchType[patch_type]
+        elif isinstance(patch_type, int):
+            patch_type = HSRPatchType(patch_type)
+        patcher.patch_type = patch_type
+    elif command.name.startswith("genshin"):
+        State.game = GenshinGame(game_path)
     if channel:
         State.game.channel_override = channel
     utils.silent_message = silent
@@ -83,8 +104,8 @@ def set_version_config(self: Command):
 
 
 class VoicepackListInstalled(Command):
-    name = "genshin voicepack list-installed"
-    description = "Gets the installed voicepacks."
+    name = "hsr voicepack list-installed"
+    description = "Get the installed voicepacks"
     options = default_options
 
     def handle(self):
@@ -97,10 +118,10 @@ class VoicepackListInstalled(Command):
 
 
 class VoicepackList(Command):
-    name = "genshin voicepack list"
-    description = "Gets all available voicepacks."
+    name = "hsr voicepack list"
+    description = "Get all available voicepacks"
     options = default_options + [
-        option("pre-download", description="Pre-download the game if available."),
+        option("pre-download", description="Pre-download the game if available"),
     ]
 
     def handle(self):
@@ -115,12 +136,12 @@ class VoicepackList(Command):
 
 
 class VoicepackInstall(Command):
-    name = "genshin voicepack install"
+    name = "hsr voicepack install"
     description = (
-        "Installs the specified installed voicepacks."
+        "Installs the specified installed voicepacks"
     )
     options = default_options + [
-        option("pre-download", description="Pre-download the game if available."),
+        option("pre-download", description="Pre-download the game if available"),
     ]
     arguments = [
         argument(
@@ -201,15 +222,15 @@ class VoicepackInstall(Command):
 
 
 class VoicepackUpdate(Command):
-    name = "genshin voicepack update"
+    name = "hsr voicepack update"
     description = (
-        "Updates the specified installed voicepacks, if not specified, updates all."
+        "Updates the specified installed voicepacks, if not specified, updates all"
     )
     options = default_options + [
         option(
-            "auto-repair", "R", description="Automatically repair the game if needed."
+            "auto-repair", "R", description="Automatically repair the game if needed"
         ),
-        option("pre-download", description="Pre-download the game if available."),
+        option("pre-download", description="Pre-download the game if available"),
         option(
             "from-version", description="Update from a specific version", flag=False
         ),
@@ -315,9 +336,196 @@ class VoicepackUpdate(Command):
         )
 
 
+class PatchTypeCommand(Command):
+    name = "hsr patch type"
+    description = "Get the patch type of the game"
+    options = default_options
+
+    def handle(self):
+        callback(command=self)
+        self.line(f"Patch type: <comment>{patcher.patch_type.name}</comment>")
+
+
+class UpdatePatchCommand(Command):
+    name = "hsr patch update"
+    description = "Updates the patch"
+    options = default_options
+
+    def handle(self):
+        callback(command=self)
+        progress = utils.ProgressIndicator(self)
+        progress.start("Updating patch... ")
+        try:
+            patcher.update_patch()
+        except PatchUpdateError as e:
+            progress.finish(
+                f"<error>Patch update failed with following error: {e} \n{traceback.format_exc()}</error>"
+            )
+        else:
+            progress.finish("<comment>Patch updated!</comment>")
+
+
+class PatchInstallCommand(Command):
+    name = "hsr patch install"
+    description = "Installs the patch"
+    options = default_options
+
+    def jadeite(self):
+        progress = utils.ProgressIndicator(self)
+        progress.start("Installing patch... ")
+        try:
+            jadeite_dir = patcher.patch_game(game=State.game)
+        except PatcherError as e:
+            progress.finish(
+                f"<error>Patch installation failed with following error: {e} \n{traceback.format_exc()}</error>"
+            )
+            return
+        progress.finish("<comment>Patch installed!</comment>")
+        print()
+        exe_path = jadeite_dir.joinpath("jadeite.exe")
+        self.line(f"Jadeite executable is located at: <question>{exe_path}</question>")
+        self.line(
+            "You need to <warn>run the game using Jadeite</warn> to use the patch."
+        )
+        self.line(f'E.g: <question>{exe_path} "{State.game.path}"</question>')
+        print()
+        self.line(
+            "To activate the experimental patching method, set the environment variable BREAK_CATHACK=1"
+        )
+        self.line(
+            "Read more about it here: https://codeberg.org/mkrsym1/jadeite/issues/37"
+        )
+        print()
+        self.line(
+            "Please don't spread this project to public, we just want to play the game."
+        )
+        self.line(
+            "And for your own sake, please only <warn>use test accounts</warn>, as there is an <warn>extremely high risk of getting banned.</warn>"
+        )
+
+    def astra(self):
+        progress = utils.ProgressIndicator(self)
+        progress.start("Installing patch... ")
+        try:
+            patcher.patch_game(game=State.game)
+        except PatcherError as e:
+            progress.finish(
+                f"<error>Patch installation failed with following error: {e} \n{traceback.format_exc()}</error>"
+            )
+            return
+        progress.finish("<comment>Patch installed!</comment>")
+        self.line()
+        self.line(
+            "Please don't spread this project to public, we just want to play the game."
+        )
+        self.line(
+            "And for your own sake, please only use testing accounts, as there is an extremely high risk of getting banned."
+        )
+
+    def handle(self):
+        callback(command=self)
+        if system() == "Windows":
+            self.line(
+                "Windows is <comment>officialy supported</comment> by the game, so no patching is needed."
+            )
+        self.line(
+            "By patching the game, <warn>you are violating the ToS of the game.</warn>"
+        )
+        if not self.confirm("Do you want to patch the game?"):
+            self.line("<error>Patching aborted.</error>")
+            return
+        progress = utils.ProgressIndicator(self)
+        progress.start("Checking telemetry hosts... ")
+        telemetry_list = patcher.check_telemetry()
+        if telemetry_list:
+            progress.finish("<warn>Telemetry hosts were found.</warn>")
+            self.line("Below is the list of telemetry hosts that need to be blocked:")
+            print()
+            for host in telemetry_list:
+                self.line(f"{host}")
+            print()
+            self.line(
+                "To prevent the game from sending data about the patch, "
+                + "we need to <comment>block these hosts.</comment>"
+            )
+            if not self.confirm("Do you want to block them?"):
+                self.line("<error>Patching aborted.</error>")
+                self.line(
+                    "<error>Please block these hosts manually then try again.</error>"
+                )
+                return
+            try:
+                patcher.block_telemetry(telemetry_list=telemetry_list)
+            except Exception:
+                self.line_error(
+                    f"<error>Couldn't block telemetry hosts: {traceback.format_exc()}</error>"
+                )
+                # There's a good reason for this.
+                if system() != "Windows":
+                    self.line(
+                        "<error>Cannot continue, please block them manually then try again.</error>"
+                    )
+                    return
+                self.line("<warn>Continuing anyway...</warn>")
+        else:
+            progress.finish("<comment>No telemetry hosts found.</comment>")
+        progress = utils.ProgressIndicator(self)
+        progress.start("Updating patch... ")
+        try:
+            patcher.update_patch()
+        except PatchUpdateError as e:
+            progress.finish(
+                f"<error>Patch update failed with following error: {e} \n{traceback.format_exc()}</error>"
+            )
+        else:
+            progress.finish("<comment>Patch updated.</comment>")
+        match patcher.patch_type:
+            case HSRPatchType.Jadeite:
+                self.jadeite()
+            case HSRPatchType.Astra:
+                self.astra()
+
+
+PatchCommand = copy.deepcopy(PatchInstallCommand)
+PatchCommand.name = "hsr patch"
+
+
+class PatchTelemetryCommand(Command):
+    name = "hsr patch telemetry"
+    description = "Checks for telemetry hosts and block them."
+    options = default_options
+
+    def handle(self):
+        progress = utils.ProgressIndicator(self)
+        progress.start("Checking telemetry hosts... ")
+        telemetry_list = patcher.check_telemetry()
+        if telemetry_list:
+            progress.finish("<warn>Telemetry hosts were found.</warn>")
+            self.line("Below is the list of telemetry hosts that need to be blocked:")
+            print()
+            for host in telemetry_list:
+                self.line(f"{host}")
+            print()
+            self.line(
+                "To prevent the game from sending data about the patch, "
+                + "we need to <comment>block these hosts.</comment>"
+            )
+            if not self.confirm("Do you want to block them?"):
+                self.line("<error>Blocking aborted.</error>")
+                return
+            try:
+                patcher.block_telemetry(telemetry_list=telemetry_list)
+            except Exception:
+                self.line_error(
+                    f"<error>Couldn't block telemetry hosts: {traceback.format_exc()}</error>"
+                )
+        else:
+            progress.finish("<comment>No telemetry hosts found.</comment>")
+
+
 class GetVersionCommand(Command):
-    name = "genshin version"
-    description = "Gets the local game version."
+    name = "hsr version"
+    description = "Gets the local game version"
     options = default_options
 
     def handle(self):
@@ -331,13 +539,13 @@ class GetVersionCommand(Command):
 
 
 class InstallCommand(Command):
-    name = "genshin install"
+    name = "hsr install"
     description = (
         "Installs the latest version of the game to the specified path (default: current directory). "
         + "Note that this will not install the default voicepack (English), you need to install it manually."
     )
     options = default_options + [
-        option("pre-download", description="Pre-download the game if available."),
+        option("pre-download", description="Pre-download the game if available"),
     ]
 
     def handle(self):
@@ -397,13 +605,13 @@ class InstallCommand(Command):
 
 
 class UpdateCommand(Command):
-    name = "genshin update"
+    name = "hsr update"
     description = "Updates the local game if available"
     options = default_options + [
         option(
-            "auto-repair", "R", description="Automatically repair the game if needed."
+            "auto-repair", "R", description="Automatically repair the game if needed"
         ),
-        option("pre-download", description="Pre-download the game if available."),
+        option("pre-download", description="Pre-download the game if available"),
         option(
             "from-version", description="Update from a specific version", flag=False
         ),
@@ -515,7 +723,7 @@ class UpdateCommand(Command):
 
 
 class RepairCommand(Command):
-    name = "genshin repair"
+    name = "hsr repair"
     description = "Tries to repair the local game"
     options = default_options
 
@@ -545,13 +753,13 @@ class RepairCommand(Command):
 
 
 class InstallDownloadCommand(Command):
-    name = "genshin install download"
+    name = "hsr install download"
     description = (
         "Downloads the latest version of the game. "
         + "Note that this will not download the default voicepack (English), you need to download it manually."
     )
     options = default_options + [
-        option("pre-download", description="Pre-download the game if available."),
+        option("pre-download", description="Pre-download the game if available"),
     ]
 
     def handle(self):
@@ -594,13 +802,13 @@ class InstallDownloadCommand(Command):
 
 
 class UpdateDownloadCommand(Command):
-    name = "genshin update download"
+    name = "hsr update download"
     description = "Download the update for the local game if available"
     options = default_options + [
         option(
-            "auto-repair", "R", description="Automatically repair the game if needed."
+            "auto-repair", "R", description="Automatically repair the game if needed"
         ),
-        option("pre-download", description="Pre-download the game if available."),
+        option("pre-download", description="Pre-download the game if available"),
         option(
             "from-version", description="Update from a specific version", flag=False
         ),
@@ -683,7 +891,7 @@ class UpdateDownloadCommand(Command):
 
 
 class ApplyInstallArchive(Command):
-    name = "genshin install apply-archive"
+    name = "hsr install apply-archive"
     description = "Applies the install archive"
     arguments = [argument("path", description="Path to the install archive")]
     options = default_options
@@ -705,12 +913,12 @@ class ApplyInstallArchive(Command):
 
 
 class ApplyUpdateArchive(Command):
-    name = "genshin update apply-archive"
+    name = "hsr update apply-archive"
     description = "Applies the update archive to the local game"
     arguments = [argument("path", description="Path to the update archive")]
     options = default_options + [
         option(
-            "auto-repair", "R", description="Automatically repair the game if needed."
+            "auto-repair", "R", description="Automatically repair the game if needed"
         ),
     ]
 
@@ -730,14 +938,19 @@ class ApplyUpdateArchive(Command):
         progress.finish("<comment>Update applied.</comment>")
         set_version_config()
 
-
-commands = [
+# This is the list for HSR commands, we'll add Genshin commands later
+hsr_exports = [
     ApplyInstallArchive,
     ApplyUpdateArchive,
     GetVersionCommand,
     InstallCommand,
     InstallDownloadCommand,
+    PatchCommand,
+    PatchInstallCommand,
+    PatchTelemetryCommand,
+    PatchTypeCommand,
     RepairCommand,
+    UpdatePatchCommand,
     UpdateCommand,
     UpdateDownloadCommand,
     VoicepackInstall,
@@ -745,3 +958,11 @@ commands = [
     VoicepackListInstalled,
     VoicepackUpdate,
 ]
+exports = []
+for command in hsr_exports:
+    exports.append(command)
+    if "patch" in command.name:
+        continue
+    new_command = copy.deepcopy(command)
+    new_command.name = f"genshin {new_command.name[4:]}"
+    exports.append(new_command)
