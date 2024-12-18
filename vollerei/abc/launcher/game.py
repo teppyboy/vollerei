@@ -129,7 +129,7 @@ class GameABC(ABC):
         """
         pass
 
-    def get_remote_game(self, pre_download: bool = False) -> resource.Game:
+    def get_remote_game(self, pre_download: bool = False) -> resource.Main | resource.PreDownload:
         """
         Gets the current game information from remote.
 

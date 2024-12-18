@@ -1,4 +1,3 @@
-# THIS FILE CURRENTLY DOESN'T WORK YET.
 import copy
 import traceback
 from cleo.commands.command import Command
@@ -130,7 +129,7 @@ class VoicepackList(Command):
         remote_game = State.game.get_remote_game(pre_download=pre_download)
         available_voicepacks_str = [
             f"<comment>{x.language.name} ({x.language.value})</comment>"
-            for x in remote_game.latest.voice_packs
+            for x in remote_game.major.audio_pkgs
         ]
         self.line(f"Available voicepacks: {', '.join(available_voicepacks_str)}")
 
@@ -939,7 +938,7 @@ class ApplyUpdateArchive(Command):
         set_version_config()
 
 # This is the list for HSR commands, we'll add Genshin commands later
-hsr_exports = [
+classes = [
     ApplyInstallArchive,
     ApplyUpdateArchive,
     GetVersionCommand,
@@ -959,10 +958,15 @@ hsr_exports = [
     VoicepackUpdate,
 ]
 exports = []
-for command in hsr_exports:
-    exports.append(command)
+for command in classes:
+    init_command = command()
+    exports.append(init_command)
     if "patch" in command.name:
         continue
-    new_command = copy.deepcopy(command)
-    new_command.name = f"genshin {new_command.name[4:]}"
-    exports.append(new_command)
+    command_name = command.name[4:]
+    genshin_init_command = copy.deepcopy(init_command)
+    genshin_init_command.name = f"genshin {command_name}"
+    exports.append(genshin_init_command)
+    zzz_init_command = copy.deepcopy(init_command)
+    zzz_init_command.name = f"zzz {command_name}"
+    exports.append(zzz_init_command)
