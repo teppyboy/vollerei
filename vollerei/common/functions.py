@@ -211,7 +211,7 @@ def repair_files(
 
     Args:
         game (GameABC): The game to repair the files for.
-        file (PathLike): The file to repair.
+        files (PathLike): The files to repair.
         pre_download (bool): Whether to get the pre-download version.
             Defaults to False.
     """

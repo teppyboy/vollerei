@@ -364,7 +364,7 @@ class Game(GameABC):
         fails.
 
         Args:
-            file (PathLike): The file to repair.
+            files (PathLike): The file to repair.
             pre_download (bool): Whether to get the pre-download version.
                 Defaults to False.
         """

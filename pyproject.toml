@@ -27,6 +27,11 @@ optional = true
 pytest = "^7.3.1"
 pre-commit = "^3.3.3"
 
+
+[tool.poetry.group.docs.dependencies]
+mkdocstrings-python = "^1.12.2"
+mkdocs-material = "^9.5.49"
+
 [tool.poetry.scripts]
 vollerei = 'vollerei.cli:run'
 

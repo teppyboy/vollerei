@@ -1,0 +1,38 @@
+site_name: Vollerei
+site_url: https://tretrauit.me/vollerei/
+site_author: tretrauit
+site_description: >-
+  Documentation for the Vollerei project, a Python library for managing and
+  interacting with HoYoVerse games.
+
+repo_name: teppyboy/vollerei
+repo_url: https://github.com/teppyboy/vollerei
+
+# Copyright
+copyright: Copyright &copy; 2023 - 2024 tretrauit
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/link
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
+
+plugins:
+- search
+- mkdocstrings

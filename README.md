@@ -4,6 +4,10 @@
 
 An open-source launcher for anime games
 
+## Documentation
+
+https://tretrauit.me/vollerei/
+
 ## Installation
 
 Assumming you have `pipx` installed, execute the following command:

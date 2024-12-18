@@ -386,9 +386,10 @@ class Game(GameABC):
         fails.
 
         Args:
-            file (PathLike): The file to repair.
+            files (PathLike): The files to repair.
             pre_download (bool): Whether to get the pre-download version.
                 Defaults to False.
+            game_info (resource.Game): The game information to use for repair.
         """
         functions.repair_files(
             self, files, pre_download=pre_download, game_info=game_info

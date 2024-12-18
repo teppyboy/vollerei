@@ -19,10 +19,6 @@ from vollerei.utils import download
 class Game(GameABC):
     """
     Manages the game installation
-
-    Since channel detection isn't (properly) implemented yet, most functions assume you're
-    using the overseas version of the game. You can override channel by setting
-    the property `channel_override` to the channel you want to use.
     """
 
     def __init__(self, path: PathLike = None, cache_path: PathLike = None):
@@ -55,9 +51,6 @@ class Game(GameABC):
     def channel_override(self) -> GameChannel | None:
         """
         Overrides the game channel.
-
-        Because game channel detection isn't implemented yet, you may need
-        to use this for some functions to work.
 
         This can be useful if you want to override the channel of the game
         and additionally working around bugs.
@@ -369,7 +362,7 @@ class Game(GameABC):
         fails.
 
         Args:
-            file (PathLike): The file to repair.
+            files (PathLike): The files to repair.
             pre_download (bool): Whether to get the pre-download version.
                 Defaults to False.
         """

@@ -39,9 +39,6 @@ class GameABC(ABC):
 
         Args:
             game_path (PathLike, optional): Path to install the game to.
-
-        Returns:
-            None
         """
         pass
 
@@ -103,7 +100,7 @@ class GameABC(ABC):
         multiple files.
 
         Args:
-            file (PathLike): The file to repair.
+            files (PathLike): The files to repair.
             pre_download (bool): Whether to get the pre-download version.
                 Defaults to False.
         """
