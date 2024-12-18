@@ -277,12 +277,12 @@ class Game(GameABC):
         voicepacks = []
         for child in (
             self.data_folder()
-            .joinpath("StreamingAssets/AudioAssets/AudioPackage/")
+            .joinpath("StreamingAssets/Audio/Windows/Full/")
             .iterdir()
         ):
             if child.resolve().is_dir():
                 try:
-                    voicepacks.append(VoicePackLanguage[child.name])
+                    voicepacks.append(VoicePackLanguage.from_zzz_name(child.name))
                 except ValueError:
                     pass
         return voicepacks

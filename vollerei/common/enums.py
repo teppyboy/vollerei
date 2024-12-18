@@ -30,3 +30,23 @@ class VoicePackLanguage(Enum):
             return VoicePackLanguage.English
         else:
             raise ValueError(f"Invalid language string: {s}")
+
+    @staticmethod
+    def from_zzz_name(s: str) -> "VoicePackLanguage":
+        """
+        Converts a language string from ZZZ file name to a VoicePackLanguage enum.
+
+        Only English is tested for now.
+        """
+        if s == "Jp":
+            return VoicePackLanguage.Japanese
+        elif s == "Cn":
+            return VoicePackLanguage.Chinese
+        elif s == "Tw":
+            return VoicePackLanguage.Taiwanese
+        elif s == "Kr":
+            return VoicePackLanguage.Korean
+        elif s == "En":
+            return VoicePackLanguage.English
+        else:
+            raise ValueError(f"Invalid language string: {s}")
