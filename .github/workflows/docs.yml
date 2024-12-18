@@ -9,7 +9,7 @@ jobs:
   # Build job
   build:
     # Specify runner +  build & upload the static files as an artifact
-    runs-on: python@latest
+    runs-on: python:latest
     steps:
       - name: Checkout code
         id: checkout-code
