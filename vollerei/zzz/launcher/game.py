@@ -30,7 +30,7 @@ class Game(GameABC):
         if not cache_path:
             cache_path = paths.cache_path
         cache_path = Path(cache_path)
-        self.cache: Path = cache_path.joinpath("game/genshin/")
+        self.cache: Path = cache_path.joinpath("game/zzz/")
         self.cache.mkdir(parents=True, exist_ok=True)
         self._version_override: tuple[int, int, int] | None = None
         self._channel_override: GameChannel | None = None
@@ -192,7 +192,7 @@ class Game(GameABC):
         Gets the current installed game version.
 
         Credits to An Anime Team for the code that does the magic:
-        https://github.com/an-anime-team/anime-game-core/blob/main/src/games/genshin/game.rs#L52
+        https://github.com/an-anime-team/anime-game-core/blob/main/src/games/zzz/game.rs#L49
 
         If the above method fails, it'll fallback to read the config.ini file
         for the version, which is not recommended (as described in
@@ -224,25 +224,18 @@ class Game(GameABC):
                 for byte in f.read(10000):
                     match byte:
                         case 0:
+                            if correct and len(version_bytes[0]) > 0 and len(version_bytes[1]) > 0 and len(version_bytes[2]) > 0:
+                                found_version = tuple(
+                                    bytes_to_int(i) for i in version_bytes
+                                )
+                                return found_version
                             version_bytes = [[], [], []]
                             version_ptr = 0
                             correct = True
-                        case 46:
+                        case b'.':
                             version_ptr += 1
                             if version_ptr > 2:
                                 correct = False
-                        case 95:
-                            if (
-                                correct
-                                and len(version_bytes[0]) > 0
-                                and len(version_bytes[1]) > 0
-                                and len(version_bytes[2]) > 0
-                            ):
-                                return (
-                                    bytes_to_int(version_bytes[0]),
-                                    bytes_to_int(version_bytes[1]),
-                                    bytes_to_int(version_bytes[2]),
-                                )
                         case _:
                             if correct and byte in b"0123456789":
                                 version_bytes[version_ptr].append(byte)
@@ -276,9 +269,7 @@ class Game(GameABC):
             raise GameNotInstalledError("Game is not installed.")
         voicepacks = []
         for child in (
-            self.data_folder()
-            .joinpath("StreamingAssets/Audio/Windows/Full/")
-            .iterdir()
+            self.data_folder().joinpath("StreamingAssets/Audio/Windows/Full/").iterdir()
         ):
             if child.resolve().is_dir():
                 try:

@@ -2,6 +2,7 @@ import concurrent.futures
 import json
 import hashlib
 import py7zr
+import zipfile
 from io import IOBase
 from os import PathLike
 from pathlib import Path
@@ -39,9 +40,30 @@ def apply_update_archive(
 
     # Install HDiffPatch
     _hdiff.hpatchz()
+
     # Open archive
-    # archive = zipfile.ZipFile(archive_file, "r")
-    archive = py7zr.SevenZipFile(archive_file, "r")
+    def reset_if_py7zr(archive):
+        if isinstance(archive, py7zr.SevenZipFile):
+            archive.reset()
+
+    def extract_files(archive: py7zr.SevenZipFile | zipfile.ZipFile, files, path: PathLike):
+        if isinstance(archive, py7zr.SevenZipFile):
+            # .7z archive
+            archive.extract(path, files)
+        else:
+            # .zip archive
+            archive.extractall(path, files)
+
+    archive: py7zr.SevenZipFile | zipfile.ZipFile = None
+    try:
+        archive = py7zr.SevenZipFile(archive_file, "r")
+    except py7zr.exceptions.Bad7zFile:
+        # Try to open it as a zip file
+        try:
+            archive = zipfile.ZipFile(archive_file, "r")
+        except zipfile.BadZipFile:
+            raise ValueError("Archive is not a valid 7z or zip file.")
+
     # Get files list (we don't want to extract all of them)
     files = archive.namelist()
     # Don't extract these files (they're useless and if the game isn't patched then
@@ -52,18 +74,23 @@ def apply_update_archive(
         except ValueError:
             pass
     # Think for me a better name for this variable
-    txtfiles = archive.read(["deletefiles.txt", "hdifffiles.txt"])
-    # Reset archive to extract files
-    archive.reset()
+    txtfiles = None
+    if isinstance(archive, py7zr.SevenZipFile):
+        txtfiles = archive.read(["deletefiles.txt", "hdifffiles.txt"])
+        # Reset archive to extract files
+        archive.reset()
     try:
         # miHoYo loves CRLF
-        deletebytes = txtfiles["deletefiles.txt"].read()
+        if txtfiles is not None:
+            deletebytes = txtfiles["deletefiles.txt"].read()
+        else:
+            deletebytes = archive.read("deletefiles.txt")
         if deletebytes is not str:
             # Typing
             deletebytes: bytes
             deletebytes = deletebytes.decode()
         deletefiles = deletebytes.split("\r\n")
-    except IOError:
+    except (IOError, KeyError):
         pass
     else:
         for file_str in deletefiles:
@@ -80,7 +107,10 @@ def apply_update_archive(
     # hdiffpatch implementation
     # Read hdifffiles.txt to get the files to patch
     hdifffiles = []
-    hdiffbytes = txtfiles["hdifffiles.txt"].read()
+    if txtfiles is not None:
+        hdiffbytes = txtfiles["hdifffiles.txt"].read()
+    else:
+        hdiffbytes = archive.read("hdifffiles.txt")
     if hdiffbytes is not str:
         # Typing
         hdiffbytes: bytes
@@ -132,8 +162,8 @@ def apply_update_archive(
         patch_jobs.append([patch, [file, patch_file]])
 
     # Extract patch files to temporary dir
-    archive.extract(game.cache, patch_files)
-    archive.reset()  # For the next extraction
+    extract_files(archive, patch_files, game.cache)
+    reset_if_py7zr(archive)  # For the next extraction
     # Create new ThreadPoolExecutor for patching
     patch_executor = concurrent.futures.ThreadPoolExecutor()
     for job in patch_jobs:
@@ -141,7 +171,7 @@ def apply_update_archive(
     patch_executor.shutdown(wait=True)
 
     # Extract files from archive after we have filtered out the patch files
-    archive.extract(game.path, files)
+    extract_files(archive, files, game.path)
 
     # Close the archive
     archive.close()

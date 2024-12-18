@@ -114,7 +114,7 @@ class GameABC(ABC):
         """
         pass
 
-    def get_update(self):
+    def get_update(self) -> resource.Patch | None:
         """
         Get the game update
         """
@@ -126,7 +126,9 @@ class GameABC(ABC):
         """
         pass
 
-    def get_remote_game(self, pre_download: bool = False) -> resource.Main | resource.PreDownload:
+    def get_remote_game(
+        self, pre_download: bool = False
+    ) -> resource.Main | resource.PreDownload:
         """
         Gets the current game information from remote.
 

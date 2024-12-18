@@ -5,6 +5,7 @@ from cleo.helpers import option, argument
 from pathlib import PurePath
 from platform import system
 from vollerei.abc.launcher.game import GameABC
+from vollerei.common.api import resource
 from vollerei.common.enums import GameChannel, VoicePackLanguage
 from vollerei.cli import utils
 from vollerei.exceptions.game import GameError
@@ -141,9 +142,7 @@ class VoicepackList(Command):
 
 class VoicepackInstall(Command):
     name = "hsr voicepack install"
-    description = (
-        "Installs the specified installed voicepacks"
-    )
+    description = "Installs the specified installed voicepacks"
     options = default_options + [
         option("pre-download", description="Pre-download the game if available"),
     ]
@@ -196,7 +195,9 @@ class VoicepackInstall(Command):
             self.line(
                 f"Downloading install package for language: <comment>{remote_voicepack.language.name}</comment>... "
             )
-            archive_file = State.game.cache.joinpath(PurePath(remote_voicepack.url).name)
+            archive_file = State.game.cache.joinpath(
+                PurePath(remote_voicepack.url).name
+            )
             try:
                 download_result = utils.download(
                     remote_voicepack.url, archive_file, file_len=remote_voicepack.size
@@ -280,7 +281,7 @@ class VoicepackUpdate(Command):
         progress = utils.ProgressIndicator(self)
         progress.start("Checking for updates... ")
         try:
-            update_diff = State.game.get_update(pre_download=pre_download)
+            update_diff: resource.Patch | None = State.game.get_update(pre_download=pre_download)
             game_info = State.game.get_remote_game(pre_download=pre_download)
         except Exception as e:
             progress.finish(
@@ -295,23 +296,25 @@ class VoicepackUpdate(Command):
             f"The current version is: <comment>{State.game.get_version_str()}</comment>"
         )
         self.line(
-            f"The latest version is: <comment>{game_info.latest.version}</comment>"
+            f"The latest version is: <comment>{game_info.major.version}</comment>"
         )
         if not self.confirm("Do you want to update the game?"):
             self.line("<error>Update aborted.</error>")
             return
         # Voicepack update
-        for remote_voicepack in update_diff.voice_packs:
+        for remote_voicepack in update_diff.audio_pkgs:
             if remote_voicepack.language not in installed_voicepacks:
                 continue
             # Voicepack is installed, update it
-            self.line(
-                f"Downloading update package for language: <comment>{remote_voicepack.language.name}</comment>... "
+            archive_file = State.game.cache.joinpath(
+                PurePath(remote_voicepack.url).name
             )
-            archive_file = State.game.cache.joinpath(remote_voicepack.name)
+            self.line(
+                f"Downloading update package for voicepack language '{remote_voicepack.language.name}'..."
+            )
             try:
                 download_result = utils.download(
-                    remote_voicepack.path, archive_file, file_len=update_diff.size
+                    remote_voicepack.url, archive_file, file_len=remote_voicepack.size
                 )
             except Exception as e:
                 self.line_error(f"<error>Couldn't download update: {e}</error>")
@@ -334,10 +337,9 @@ class VoicepackUpdate(Command):
             progress.finish(
                 f"<comment>Update applied for language {remote_voicepack.language.name}.</comment>"
             )
+        State.game.version_override = game_info.major.version
         set_version_config(self=self)
-        self.line(
-            f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
-        )
+        State.game.version_override = None
 
 
 class PatchTypeCommand(Command):
@@ -601,7 +603,7 @@ class InstallCommand(Command):
         progress.finish("<comment>Package applied for the base game.</comment>")
         self.line("Setting version config... ")
         State.game.version_override = game_info.major.version
-        set_version_config()
+        set_version_config(self=self)
         State.game.version_override = None
         self.line(
             f"The game has been installed to version: <comment>{State.game.get_version_str()}</comment>"
@@ -719,7 +721,7 @@ class UpdateCommand(Command):
             )
         self.line("Setting version config... ")
         State.game.version_override = game_info.major.version
-        set_version_config()
+        set_version_config(self=self)
         State.game.version_override = None
         self.line(
             f"The game has been updated to version: <comment>{State.game.get_version_str()}</comment>"
@@ -940,7 +942,8 @@ class ApplyUpdateArchive(Command):
             )
             return
         progress.finish("<comment>Update applied.</comment>")
-        set_version_config()
+        set_version_config(self=self)
+
 
 # This is the list for HSR commands, we'll add Genshin commands later
 classes = [

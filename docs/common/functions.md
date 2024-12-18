@@ -1,4 +1,4 @@
-# Common function for all games
+# Function for all games
 
 Since you should use the specific implementation for the target game instead, these functions may not be correctly documented.
 
