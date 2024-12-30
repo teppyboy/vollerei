@@ -272,12 +272,11 @@ class Game(GameABC):
         """
         if not self.is_installed():
             raise GameNotInstalledError("Game is not installed.")
+        audio_assets = self.data_folder().joinpath("StreamingAssets/AudioAssets/")
+        if audio_assets.joinpath("AudioPackage").is_dir():
+            audio_assets = audio_assets.joinpath("AudioPackage")
         voicepacks = []
-        for child in (
-            self.data_folder()
-            .joinpath("StreamingAssets/AudioAssets/AudioPackage/")
-            .iterdir()
-        ):
+        for child in audio_assets.iterdir():
             if child.resolve().is_dir():
                 try:
                     voicepacks.append(VoicePackLanguage[child.name])

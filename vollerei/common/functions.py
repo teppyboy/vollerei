@@ -46,7 +46,9 @@ def apply_update_archive(
         if isinstance(archive, py7zr.SevenZipFile):
             archive.reset()
 
-    def extract_files(archive: py7zr.SevenZipFile | zipfile.ZipFile, files, path: PathLike):
+    def extract_files(
+        archive: py7zr.SevenZipFile | zipfile.ZipFile, files, path: PathLike
+    ):
         if isinstance(archive, py7zr.SevenZipFile):
             # .7z archive
             archive.extract(path, files)

@@ -224,7 +224,12 @@ class Game(GameABC):
                 for byte in f.read(10000):
                     match byte:
                         case 0:
-                            if correct and len(version_bytes[0]) > 0 and len(version_bytes[1]) > 0 and len(version_bytes[2]) > 0:
+                            if (
+                                correct
+                                and len(version_bytes[0]) > 0
+                                and len(version_bytes[1]) > 0
+                                and len(version_bytes[2]) > 0
+                            ):
                                 found_version = tuple(
                                     bytes_to_int(i) for i in version_bytes
                                 )
@@ -232,7 +237,7 @@ class Game(GameABC):
                             version_bytes = [[], [], []]
                             version_ptr = 0
                             correct = True
-                        case b'.':
+                        case b".":
                             version_ptr += 1
                             if version_ptr > 2:
                                 correct = False

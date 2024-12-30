@@ -281,7 +281,9 @@ class VoicepackUpdate(Command):
         progress = utils.ProgressIndicator(self)
         progress.start("Checking for updates... ")
         try:
-            update_diff: resource.Patch | None = State.game.get_update(pre_download=pre_download)
+            update_diff: resource.Patch | None = State.game.get_update(
+                pre_download=pre_download
+            )
             game_info = State.game.get_remote_game(pre_download=pre_download)
         except Exception as e:
             progress.finish(
