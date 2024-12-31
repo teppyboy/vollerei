@@ -278,8 +278,11 @@ class Game(GameABC):
         voicepacks = []
         for child in audio_assets.iterdir():
             if child.resolve().is_dir():
+                name = child.name
+                if name.startswith("English"):
+                    name = "English"
                 try:
-                    voicepacks.append(VoicePackLanguage[child.name])
+                    voicepacks.append(VoicePackLanguage[name])
                 except ValueError:
                     pass
         return voicepacks
