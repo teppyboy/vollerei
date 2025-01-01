@@ -283,7 +283,7 @@ class Game(GameABC):
                     name = "English"
                 try:
                     voicepacks.append(VoicePackLanguage[name])
-                except ValueError:
+                except (ValueError, KeyError):
                     pass
         return voicepacks
 
