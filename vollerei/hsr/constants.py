@@ -1,4 +1,3 @@
-LATEST_VERSION = (2, 5, 0)
 MD5SUMS = {
     "1.0.5": {
         "cn": {

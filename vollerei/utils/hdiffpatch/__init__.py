@@ -1,3 +1,4 @@
+from os import PathLike
 import platform
 import subprocess
 from zipfile import ZipFile
@@ -86,9 +87,11 @@ class HDiffPatch:
     def hpatchz(self) -> str | None:
         return self._get_binary("hpatchz")
 
-    def patch_file(self, in_file, out_file, patch_file):
+    def patch_file(self, in_file: PathLike, out_file: PathLike, patch_file: PathLike):
         try:
-            subprocess.check_call([self.hpatchz(), "-f", in_file, patch_file, out_file])
+            subprocess.check_call(
+                [self.hpatchz(), "-f", str(in_file), str(patch_file), str(out_file)]
+            )
         except subprocess.CalledProcessError as e:
             raise HPatchZPatchError("Patch error") from e
 
