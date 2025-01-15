@@ -76,7 +76,7 @@ def apply_update_archive(
     files = archive.namelist()
     # Don't extract these files (they're useless and if the game isn't patched then
     # it'll raise 31-4xxx error in Genshin)
-    for file in ["deletefiles.txt", "hdifffiles.txt"]:
+    for file in ["deletefiles.txt", "hdifffiles.txt", "hdiffmap.json"]:
         try:
             files.remove(file)
         except ValueError:
