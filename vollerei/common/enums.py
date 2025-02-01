@@ -1,6 +1,13 @@
 from enum import Enum
 
 
+class GameType(Enum):
+    Genshin = 0
+    HSR = 1
+    ZZZ = 3
+    HI3 = 4
+
+
 class GameChannel(Enum):
     Overseas = 0
     China = 1

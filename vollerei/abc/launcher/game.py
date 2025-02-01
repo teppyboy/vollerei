@@ -114,6 +114,20 @@ class GameABC(ABC):
         """
         pass
 
+    def get_version_config(self) -> tuple[int, int, int]:
+        """
+        Gets the current installed game version from config.ini.
+
+        Using this is not recommended, as only official launcher creates
+        and uses this file, instead you should use `get_version()`.
+
+        This returns (0, 0, 0) if the version could not be found.
+
+        Returns:
+            tuple[int, int, int]: Game version.
+        """
+        pass
+
     def get_update(self) -> resource.Patch | None:
         """
         Get the game update
