@@ -1,6 +1,6 @@
 # Game
 
-::: vollerei.game.launcher.manager.Game
+::: vollerei.game.launcher.Game
     handler: python
     options:
       show_root_heading: true
