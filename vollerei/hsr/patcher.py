@@ -3,13 +3,14 @@ from shutil import copy2, rmtree
 from packaging import version
 from vollerei.abc.patcher import PatcherABC
 from vollerei.common import telemetry
+from vollerei.common.enums import GameChannel
 from vollerei.exceptions.game import GameNotInstalledError
 from vollerei.exceptions.patcher import (
     VersionNotSupportedError,
     PatcherError,
     PatchUpdateError,
 )
-from vollerei.hsr.launcher.game import Game, GameChannel
+from vollerei.hsr.launcher.game import Game
 from vollerei.utils import download_and_extract, Git, Xdelta3
 from vollerei.paths import tools_data_path
 from vollerei.hsr.constants import ASTRA_REPO, JADEITE_REPO
