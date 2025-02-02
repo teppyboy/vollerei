@@ -219,8 +219,6 @@ def install_archive(game: GameABC, archive_file: Path | IOBase) -> None:
     `install_archive()` method instead, which additionally applies required
     methods for that game.
     """
-    if game.is_installed():
-        raise GameAlreadyInstalledError("Game is already installed.")
     archive = _open_archive(archive_file)
     archive.extractall(game.path)
     archive.close()
