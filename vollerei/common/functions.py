@@ -1,6 +1,7 @@
 import concurrent.futures
 import json
 import hashlib
+import multivolumefile
 import py7zr
 import zipfile
 from io import IOBase
@@ -11,7 +12,6 @@ from vollerei.abc.launcher.game import GameABC
 from vollerei.common.api import resource
 from vollerei.exceptions.game import (
     RepairError,
-    GameAlreadyInstalledError,
     GameNotInstalledError,
     ScatteredFilesNotAvailableError,
 )
@@ -215,11 +215,24 @@ def install_archive(game: GameABC, archive_file: Path | IOBase) -> None:
     Applies an install archive to the game, it can be the game itself or a
     voicepack one.
 
+    Args:
+        game (GameABC): The game to install the archive for.
+        archive_file (Path | IOBase): The archive file to install, if it's a
+            split archive then this is the first part.
+
     Because this function is shared for all games, you should use the game's
     `install_archive()` method instead, which additionally applies required
     methods for that game.
     """
-    archive = _open_archive(archive_file)
+    archive: py7zr.SevenZipFile | zipfile.ZipFile = None
+    archive_path = Path(archive_file)
+    if archive_path.suffix == ".001":
+        archive_path = archive_path.with_suffix("")
+        with multivolumefile.open(archive_path, mode='rb') as target_archive:
+            # TODO: Implement for .zip file (but I doubt it's needed cuz miHoYo uses 7z)
+            archive = py7zr.SevenZipFile(target_archive, "r")
+    else:
+        archive = _open_archive(archive_file)
     archive.extractall(game.path)
     archive.close()
 
